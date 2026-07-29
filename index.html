@@ -65,7 +65,7 @@
   .ch:hover{border-color:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
   .ch .ic{font-size:30px;margin-bottom:8px;display:block}
   .ch .t{font-size:19px;font-weight:900;letter-spacing:-0.02em}
-  .ch .d{font-size:13.5px;color:var(--muted);margin-top:5px;line-height:1.5}
+  .ch .d{font-size:13.5px;color:var(--muted);margin-top:5px;line-height:1.5;padding-right:24px;display:block}
   .ch .arw{position:absolute;right:20px;top:50%;transform:translateY(-50%);
            font-size:20px;color:var(--green);font-weight:800}
   .ch.off{background:var(--paper);cursor:not-allowed;opacity:.7}
@@ -219,13 +219,13 @@
         <button class="ch" onclick="goStore()">
           <span class="ic">🏪</span>
           <span class="t">대리점 시승 예약</span>
-          <span class="d">가까운 대리점에서 원하는 날짜와 시간에<br>편하게 시승하실 수 있습니다.</span>
+          <span class="d">가장 가까운 시승점을 직접 선택해주세요</span>
           <span class="arw">›</span>
         </button>
         <button class="ch" id="chEvent" onclick="goEvent()">
           <span class="ic">🎪</span>
           <span class="t">본사 시승 예약</span>
-          <span class="d" id="evDesc">핸디라이프 본사에서 진행하는 시승 행사를<br>예약하실 수 있습니다.</span>
+          <span class="d">경기도 광주시 초월읍 무갑리 628-1<br>(주)핸디라이프 본사</span>
           <span class="arw">›</span>
         </button>
       </div>
@@ -331,10 +331,6 @@ async function init() {
     if (!CFG.event.enabled) {
       const b = document.getElementById('chEvent');
       b.classList.add('off'); b.onclick = null;
-      document.getElementById('evDesc').innerHTML = '현재 예정된 본사 시승 일정이 없습니다.';
-    } else {
-      document.getElementById('evDesc').innerHTML =
-        esc(CFG.event.title) + '<br>' + esc(CFG.event.date) + ' · ' + esc(CFG.event.place);
     }
   } catch (e) {
     document.getElementById('s0').innerHTML = '<div class="empty">정보를 불러오지 못했습니다.<br>' + esc(e.message) + '</div>';
