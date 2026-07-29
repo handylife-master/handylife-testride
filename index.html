@@ -149,6 +149,9 @@
   .recap div{display:flex;gap:10px;padding:3px 0}
   .recap .k{color:var(--green-deep);font-weight:800;min-width:52px;flex-shrink:0}
 
+  .solo{margin-top:10px;background:var(--amber-soft);border-radius:10px;padding:12px 14px;
+        font-size:12.8px;color:var(--amber);line-height:1.55}
+  .solo strong{color:var(--amber)}
   .agree{display:flex;gap:10px;align-items:flex-start;background:var(--paper);
          border-radius:10px;padding:13px 14px;margin-bottom:14px}
   .agree input{margin-top:3px;width:17px;height:17px;accent-color:var(--green);flex-shrink:0}
@@ -252,6 +255,8 @@
     <div class="recap" id="doneRecap" style="margin-top:18px"></div>
     <div class="guide">
       <ul>
+        <li><strong>시승은 예약하신 본인만 가능합니다.</strong> 일행분도 시승을 원하시면 각자 예약해 주세요.</li>
+        <li>안전상 뒷자리 동승은 불가합니다.</li>
         <li>방문 시 <strong>원동기 이상 운전면허증 원본</strong>을 꼭 지참해 주세요.</li>
         <li>현장에서 간단한 시승 동의서를 작성하시게 됩니다.</li>
         <li>헬멧 등 보호장비는 전부 제공됩니다. 편한 복장과 신발로 오세요.</li>
@@ -289,7 +294,7 @@
       <div class="table-wrap">
         <table>
           <thead><tr><th>신청일시</th><th>유형</th><th>대리점</th><th>희망일</th><th>시간</th><th>기종</th>
-                     <th>성함</th><th>연락처</th><th>면허</th><th>동승</th><th>상태</th><th>관리</th></tr></thead>
+                     <th>성함</th><th>연락처</th><th>면허</th><th>동행</th><th>상태</th><th>관리</th></tr></thead>
           <tbody id="tbody"><tr><td colspan="12" class="loading">불러오는 중...</td></tr></tbody>
         </table>
       </div>
@@ -529,18 +534,20 @@ function formHTML(recap) {
         <button type="button" class="pill" onclick="pickLic(this,'2종 소형')">2종 소형</button>
         <button type="button" class="pill" onclick="pickLic(this,'1·2종 보통')">1·2종 보통</button>
       </div></div>
-    <div class="field"><label>동승자 <span class="opt">(선택)</span></label>
+    <div class="field"><label>동행 인원 <span class="opt">(시승하지 않고 함께 오시는 분)</span></label>
       <div class="pills" id="comp">
         <button type="button" class="pill selected" onclick="pickComp(this,'없음')">없음</button>
         <button type="button" class="pill" onclick="pickComp(this,'1명')">1명</button>
         <button type="button" class="pill" onclick="pickComp(this,'2명 이상')">2명 이상</button>
-      </div></div>
+      </div>
+      <div class="solo">🏍️ <strong>시승은 예약하신 본인만 가능합니다.</strong><br>
+        안전상 뒷자리 동승은 불가하며, 일행분도 시승을 원하시면 각자 예약해 주세요.</div></div>
     <div class="field"><label>남기실 말씀 <span class="opt">(선택)</span></label>
       <textarea id="fMemo" placeholder="궁금한 점이나 요청사항을 적어주세요" maxlength="200"></textarea></div>
     <div class="agree"><input type="checkbox" id="fAgree">
       <label for="fAgree">시승 시 <strong>운전면허증 원본 확인</strong> 및 <strong>시승 동의서 작성</strong>이 필요하며,
-      음주 상태에서는 시승할 수 없습니다. 시승은 지정된 구간에서만 진행됩니다.
-      입력하신 정보는 시승 운영 목적으로만 사용됩니다.</label></div>
+      음주 상태에서는 시승할 수 없습니다. <strong>시승은 예약자 본인만 가능하며 뒷자리 동승은 불가합니다.</strong>
+      시승은 지정된 구간에서만 진행됩니다. 입력하신 정보는 시승 운영 목적으로만 사용됩니다.</label></div>
     <button class="btn btn-primary" id="btnGo" onclick="submitReserve()">예약 완료하기</button>`;
 }
 function bindForm() {
@@ -693,7 +700,7 @@ function exportCSV() {
   const list = filtered();
   if (!list.length) return alert('내보낼 데이터가 없습니다.');
   const L = { applied:'예약', done:'시승완료', cancelled:'취소' };
-  const rows = [['신청일시','유형','대리점','희망일','시간','기종','성함','연락처','면허','동승자','상태','메모']].concat(
+  const rows = [['신청일시','유형','대리점','희망일','시간','기종','성함','연락처','면허','동행인원','상태','메모']].concat(
     list.map(e=>[e.ts, e.kind, storeName(e.store), e.date, e.time, e.model, e.name, e.phone, e.license, e.companion, L[e.status]||e.status, e.memo||''])
   );
   const csv = '\uFEFF' + rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
