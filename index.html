@@ -93,6 +93,10 @@
   .soon-badge{position:absolute;top:14px;right:15px;background:var(--amber-soft);color:var(--amber);
         font-size:11px;font-weight:800;padding:4px 10px;border-radius:99px}
 
+  .area-h{display:flex;align-items:center;gap:9px;margin:16px 0 9px;font-size:13px;
+          font-weight:800;color:var(--green-deep)}
+  .area-h:first-child{margin-top:0}
+  .area-h::after{content:'';flex:1;height:1px;background:var(--line)}
   .regions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
   @media(max-width:420px){.regions{grid-template-columns:1fr 1fr}}
   .rg{border:1.5px solid var(--line);background:#fff;color:var(--ink);border-radius:11px;
@@ -397,13 +401,31 @@ function setStep(title, desc, html) {
 
 /* ═══════════ 매장 시승 단계 ═══════════ */
 function storeStep() {
-  if (step === 0) {  // 지역
-    const regions = [...new Set(CFG.stores.map(s=>s.region))];
-    setStep('지역을 선택해 주세요', '시승차를 보유한 대리점이 있는 지역입니다.',
-      `<div class="regions">${regions.map(r=>{
-        const c = CFG.stores.filter(s=>s.region===r).length;
-        return `<button class="rg ${R.region===r?'selected':''}" onclick="pickRegion('${esc(r)}')">${esc(r)}<span class="c">${c}개 대리점</span></button>`;
-      }).join('')}</div>`);
+  if (step === 0) {  // 지역 (권역별 그룹)
+    const has = r => CFG.stores.filter(s=>s.region===r).length;
+    const areas = CFG.areas || [];
+    const listed = new Set();
+    let html = '';
+
+    areas.forEach(a => {
+      const rs = a.regions.filter(r => has(r) > 0);
+      if (!rs.length) return;
+      rs.forEach(r => listed.add(r));
+      html += `<div class="area-h">${esc(a.area)}</div><div class="regions">` +
+        rs.map(r => `<button class="rg ${R.region===r?'selected':''}" onclick="pickRegion('${esc(r)}')">
+            ${esc(r)}<span class="c">${has(r)}개 대리점</span></button>`).join('') + '</div>';
+    });
+
+    // AREAS 에 없는 지역명이 쓰인 경우도 누락 없이 표시
+    const etc = [...new Set(CFG.stores.map(s=>s.region))].filter(r => !listed.has(r));
+    if (etc.length) {
+      html += `<div class="area-h">기타</div><div class="regions">` +
+        etc.map(r => `<button class="rg ${R.region===r?'selected':''}" onclick="pickRegion('${esc(r)}')">
+            ${esc(r)}<span class="c">${has(r)}개 대리점</span></button>`).join('') + '</div>';
+    }
+
+    setStep('지역을 선택해 주세요', '시승차를 보유한 대리점이 있는 지역만 표시됩니다.',
+      html || '<div class="empty">현재 시승 가능한 대리점이 없습니다.</div>');
   }
   else if (step === 1) {  // 매장
     const list = CFG.stores.filter(s=>s.region===R.region);
