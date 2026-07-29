@@ -499,8 +499,14 @@ function eventStep() {
 // 현재 모드에 맞는 예약 규칙 반환
 function ctx() {
   return mode === 'store'
-    ? { times: CFG.times, cap: CFG.capPerSlot, closed: CFG.closedWeekdays, open: CFG.openDays, lead: CFG.leadDays }
-    : { times: CFG.hq.times, cap: CFG.hq.cap, closed: CFG.hq.closedWeekdays, open: CFG.hq.openDays, lead: CFG.hq.leadDays };
+    ? { times: CFG.times, cap: CFG.capPerSlot, closed: CFG.closedWeekdays || [],
+        open: CFG.openDays, lead: CFG.leadDays,
+        start: CFG.startDate || '', end: CFG.endDate || '',
+        openDates: CFG.openDates || [], closedDates: CFG.closedDates || [] }
+    : { times: CFG.hq.times, cap: CFG.hq.cap, closed: CFG.hq.closedWeekdays || [],
+        open: CFG.hq.openDays, lead: CFG.hq.leadDays,
+        start: CFG.hq.startDate || '', end: CFG.hq.endDate || '',
+        openDates: CFG.hq.openDates || [], closedDates: CFG.hq.closedDates || [] };
 }
 
 // 예약현황 로딩을 기다렸다가 캘린더 표시
@@ -514,8 +520,12 @@ async function showCalendar(desc) {
 function calendarHTML() {
   const C = ctx();
   const today = new Date(); today.setHours(0,0,0,0);
-  const min = new Date(today); min.setDate(min.getDate() + C.lead);
-  const max = new Date(today); max.setDate(max.getDate() + C.open);
+  const toDate = s => { const p = s.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); };
+  let min = new Date(today); min.setDate(min.getDate() + C.lead);
+  if (C.start && toDate(C.start) > min) min = toDate(C.start);
+  let max = new Date(today); max.setDate(max.getDate() + C.open);
+  if (C.end) max = toDate(C.end);
+  if (max < min) { max = new Date(min); max.setDate(max.getDate() + 30); }
   if (!calY) { calY = min.getFullYear(); calM = min.getMonth(); }
 
   const first = new Date(calY, calM, 1);
@@ -529,7 +539,9 @@ function calendarHTML() {
   for (let d=1; d<=days; d++) {
     const dt = new Date(calY, calM, d);
     const s = ymd(dt);
-    const closed = C.closed.indexOf(dt.getDay()) >= 0;
+    const isOpenEx = C.openDates.indexOf(s) >= 0;
+    const isClosedEx = C.closedDates.indexOf(s) >= 0;
+    const closed = isClosedEx || (!isOpenEx && C.closed.indexOf(dt.getDay()) >= 0);
     const inRange = dt >= min && dt <= max;
     const allFull = C.times.every(t => (booked[s+'|'+t]||0) >= C.cap);
     const ok = inRange && !closed && !allFull;
@@ -547,7 +559,7 @@ function calendarHTML() {
     </div>
     <p style="font-size:12.5px;color:var(--muted);margin-top:12px">
       · 점(●)이 있는 날짜만 예약 가능합니다.<br>
-      · 예약은 ${C.lead}일 뒤부터 ${C.open}일 이내로 가능합니다.</p>`;
+      · 예약 가능 기간 : ${ymd(min)} ~ ${ymd(max)}${C.closed.length ? '<br>· 휴무 : ' + C.closed.map(d=>['일','월','화','수','목','금','토'][d]+'요일').join('·') : ''}</p>`;
 }
 function moveMonth(n) {
   calM += n;
@@ -653,6 +665,7 @@ async function submitReserve() {
     if (m==='SLOT_FULL') note('아쉽게도 방금 해당 시간이 마감되었습니다. 다른 시간을 선택해 주세요.','err');
     else if (m==='DUPLICATE_PHONE') note('이미 예약하신 연락처입니다. 변경이 필요하시면 대리점 또는 본사로 연락 주세요.','err');
     else if (m==='MODEL_NOT_READY') note('선택하신 기종은 아직 시승이 불가합니다.','err');
+    else if (m==='DATE_CLOSED') note('선택하신 날짜는 예약이 불가합니다. 다른 날짜를 선택해 주세요.','err');
     else note('예약에 실패했습니다: '+m,'err');
   } finally {
     btn.disabled = false; btn.textContent = '예약 완료하기';
