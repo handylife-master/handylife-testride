@@ -704,11 +704,16 @@ async function loadList() {
   }
 }
 function storeName(id){ const s = adminStores.filter(x=>x.id===id)[0]; return s ? s.name : (id||'-'); }
+function fmtTs(iso){
+  const d = new Date(iso); if (isNaN(d)) return String(iso||'');
+  const p = n => String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
 function renderStats() {
   const act = entries.filter(e=>e.status!=='cancelled');
   document.getElementById('stTotal').textContent = act.length;
-  document.getElementById('stStore').textContent = act.filter(e=>e.kind==='매장시승').length;
-  document.getElementById('stEvent').textContent = act.filter(e=>e.kind==='시승식').length;
+  document.getElementById('stStore').textContent = act.filter(e=>e.kind==='대리점시승').length;
+  document.getElementById('stEvent').textContent = act.filter(e=>e.kind==='본사시승').length;
   document.getElementById('stDone').textContent = entries.filter(e=>e.status==='done').length;
 }
 function filtered() {
@@ -727,7 +732,7 @@ function renderTable() {
     return `<tr>
       <td>${ts}</td>
       <td><span class="badge k">${esc(e.kind)}</span></td>
-      <td>${esc(e.kind==='매장시승'?storeName(e.store):'-')}</td>
+      <td>${esc(e.kind==='본사시승' ? (CFG && CFG.hq ? CFG.hq.name : '본사') : storeName(e.store))}</td>
       <td>${esc(e.date)}</td>
       <td><strong>${esc(e.time)}</strong></td>
       <td>${esc(e.model)}</td>
@@ -761,7 +766,7 @@ function exportCSV() {
   if (!list.length) return alert('내보낼 데이터가 없습니다.');
   const L = { applied:'예약', done:'시승완료', cancelled:'취소' };
   const rows = [['신청일시','유형','대리점','희망일','시간','기종','성함','연락처','면허','동행인원','상태','메모']].concat(
-    list.map(e=>[e.ts, e.kind, storeName(e.store), e.date, e.time, e.model, e.name, e.phone, e.license, e.companion, L[e.status]||e.status, e.memo||''])
+    list.map(e=>[fmtTs(e.ts), e.kind, e.kind==='본사시승'?((CFG&&CFG.hq)?CFG.hq.name:'본사'):storeName(e.store), e.date, e.time, e.model, e.name, e.phone, e.license, e.companion, L[e.status]||e.status, e.memo||''])
   );
   const csv = '\uFEFF' + rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
   const a = document.createElement('a');
