@@ -218,14 +218,14 @@
       <div class="choice">
         <button class="ch" onclick="goStore()">
           <span class="ic">🏪</span>
-          <span class="t">매장 시승 예약</span>
-          <span class="d">가까운 매장에서 원하는 날짜와 시간에<br>편하게 시승하실 수 있습니다.</span>
+          <span class="t">대리점 시승 예약</span>
+          <span class="d">가까운 대리점에서 원하는 날짜와 시간에<br>편하게 시승하실 수 있습니다.</span>
           <span class="arw">›</span>
         </button>
         <button class="ch" id="chEvent" onclick="goEvent()">
           <span class="ic">🎪</span>
-          <span class="t">시승식 참가 신청</span>
-          <span class="d" id="evDesc">본사에서 진행하는 시승 행사에<br>참가 신청하실 수 있습니다.</span>
+          <span class="t">본사 시승 예약</span>
+          <span class="d" id="evDesc">핸디라이프 본사에서 진행하는 시승 행사를<br>예약하실 수 있습니다.</span>
           <span class="arw">›</span>
         </button>
       </div>
@@ -256,7 +256,7 @@
         <li>현장에서 간단한 시승 동의서를 작성하시게 됩니다.</li>
         <li>헬멧 등 보호장비는 전부 제공됩니다. 편한 복장과 신발로 오세요.</li>
         <li>전기이륜차는 스로틀을 감는 즉시 힘이 전달되어 가속이 빠릅니다. 현장 안내를 꼭 들어주세요.</li>
-        <li>예약 변경·취소는 매장 또는 본사로 연락 주시면 도와드립니다.</li>
+        <li>예약 변경·취소는 대리점 또는 본사로 연락 주시면 도와드립니다.</li>
       </ul>
     </div>
     <button class="btn btn-ghost btn-sm" style="margin-top:16px" onclick="location.reload()">처음으로</button>
@@ -275,12 +275,12 @@
     <div id="adminDash" style="display:none">
       <div class="stat-row">
         <div class="stat"><div class="n" id="stTotal">-</div><div class="l">전체 예약</div></div>
-        <div class="stat"><div class="n" id="stStore" style="color:var(--blue)">-</div><div class="l">매장 시승</div></div>
-        <div class="stat"><div class="n" id="stEvent" style="color:var(--green)">-</div><div class="l">시승식</div></div>
+        <div class="stat"><div class="n" id="stStore" style="color:var(--blue)">-</div><div class="l">대리점 시승</div></div>
+        <div class="stat"><div class="n" id="stEvent" style="color:var(--green)">-</div><div class="l">본사 시승</div></div>
         <div class="stat"><div class="n" id="stDone">-</div><div class="l">시승 완료</div></div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-        <input type="text" id="fSearch" placeholder="이름·연락처·매장 검색" oninput="renderTable()"
+        <input type="text" id="fSearch" placeholder="이름·연락처·대리점 검색" oninput="renderTable()"
                style="flex:1;min-width:140px;padding:9px 11px;font-size:13.5px">
         <button class="btn btn-sm btn-ghost" onclick="loadList()">새로고침</button>
         <button class="btn btn-sm btn-ghost" onclick="exportCSV()">엑셀(CSV)</button>
@@ -288,7 +288,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>신청일시</th><th>유형</th><th>매장</th><th>희망일</th><th>시간</th><th>기종</th>
+          <thead><tr><th>신청일시</th><th>유형</th><th>대리점</th><th>희망일</th><th>시간</th><th>기종</th>
                      <th>성함</th><th>연락처</th><th>면허</th><th>동승</th><th>상태</th><th>관리</th></tr></thead>
           <tbody id="tbody"><tr><td colspan="12" class="loading">불러오는 중...</td></tr></tbody>
         </table>
@@ -307,7 +307,7 @@ let CFG = null, adminToken = '', entries = [], adminStores = [];
 let mode = '', step = 0, booked = {}, calY = 0, calM = 0;
 const R = { region:'', store:null, model:'', date:'', time:'', lic:'', comp:'없음' };
 
-const STORE_STEPS = ['지역', '매장', '기종', '날짜', '시간', '정보'];
+const STORE_STEPS = ['지역', '대리점', '기종', '날짜', '시간', '정보'];
 const EVENT_STEPS = ['기종', '시간', '정보'];
 
 async function api(p) {
@@ -331,7 +331,7 @@ async function init() {
     if (!CFG.event.enabled) {
       const b = document.getElementById('chEvent');
       b.classList.add('off'); b.onclick = null;
-      document.getElementById('evDesc').innerHTML = '현재 예정된 시승식이 없습니다.';
+      document.getElementById('evDesc').innerHTML = '현재 예정된 본사 시승 일정이 없습니다.';
     } else {
       document.getElementById('evDesc').innerHTML =
         esc(CFG.event.title) + '<br>' + esc(CFG.event.date) + ' · ' + esc(CFG.event.place);
@@ -374,15 +374,15 @@ function setStep(title, desc, html) {
 function storeStep() {
   if (step === 0) {  // 지역
     const regions = [...new Set(CFG.stores.map(s=>s.region))];
-    setStep('지역을 선택해 주세요', '시승차를 보유한 매장이 있는 지역입니다.',
+    setStep('지역을 선택해 주세요', '시승차를 보유한 대리점이 있는 지역입니다.',
       `<div class="regions">${regions.map(r=>{
         const c = CFG.stores.filter(s=>s.region===r).length;
-        return `<button class="rg ${R.region===r?'selected':''}" onclick="pickRegion('${esc(r)}')">${esc(r)}<span class="c">${c}개 매장</span></button>`;
+        return `<button class="rg ${R.region===r?'selected':''}" onclick="pickRegion('${esc(r)}')">${esc(r)}<span class="c">${c}개 대리점</span></button>`;
       }).join('')}</div>`);
   }
   else if (step === 1) {  // 매장
     const list = CFG.stores.filter(s=>s.region===R.region);
-    setStep('매장을 선택해 주세요', `${R.region} 지역에서 시승 가능한 매장입니다.`,
+    setStep('대리점을 선택해 주세요', `${R.region} 지역에서 시승 가능한 대리점입니다.`,
       `<div class="list">${list.map(s=>
         `<button class="item ${R.store&&R.store.id===s.id?'selected':''}" onclick="pickStore('${esc(s.id)}')">
            <div class="n">${esc(s.name)}</div>
@@ -396,7 +396,7 @@ function storeStep() {
         if (!m.ready) return `<div class="item soon"><span class="soon-badge">출시 준비중</span>
             <div class="b">${esc(m.brand)}</div><div class="n">${esc(m.name)}</div>
             <div class="s">${esc(m.tag)} · 곧 만나보실 수 있습니다</div></div>`;
-        if (!has) return `<div class="item soon"><span class="soon-badge">해당 매장 없음</span>
+        if (!has) return `<div class="item soon"><span class="soon-badge">해당 대리점 없음</span>
             <div class="b">${esc(m.brand)}</div><div class="n">${esc(m.name)}</div>
             <div class="s">${esc(m.tag)}</div></div>`;
         return `<button class="item ${R.model===m.name?'selected':''}" onclick="pickModel('${esc(m.name)}')">
@@ -412,7 +412,7 @@ function storeStep() {
   }
   else {  // 정보
     setStep('예약자 정보를 입력해 주세요', '입력하신 정보로 예약이 확정됩니다.', formHTML(
-      [['매장',R.store.name],['기종',R.model],['날짜',korDate(R.date)],['시간',R.time]]));
+      [['대리점',R.store.name],['기종',R.model],['날짜',korDate(R.date)],['시간',R.time]]));
     bindForm();
   }
 }
@@ -569,7 +569,7 @@ async function submitReserve() {
       name, phone, license: R.lic, companion: R.comp, memo
     }});
     const rows = mode==='store'
-      ? [['매장',R.store.name],['기종',R.model],['날짜',korDate(R.date)],['시간',R.time],['성함',name]]
+      ? [['대리점',R.store.name],['기종',R.model],['날짜',korDate(R.date)],['시간',R.time],['성함',name]]
       : [['행사',CFG.event.title],['기종',R.model],['일시',CFG.event.date],['시간',R.time],['성함',name]];
     document.getElementById('doneRecap').innerHTML =
       rows.map(([k,v])=>`<div><span class="k">${k}</span><span>${esc(v)}</span></div>`).join('');
@@ -579,7 +579,7 @@ async function submitReserve() {
   } catch(e) {
     const m = e.message;
     if (m==='SLOT_FULL') note('아쉽게도 방금 해당 시간이 마감되었습니다. 다른 시간을 선택해 주세요.','err');
-    else if (m==='DUPLICATE_PHONE') note('이미 예약하신 연락처입니다. 변경이 필요하시면 매장으로 연락 주세요.','err');
+    else if (m==='DUPLICATE_PHONE') note('이미 예약하신 연락처입니다. 변경이 필요하시면 대리점 또는 본사로 연락 주세요.','err');
     else if (m==='MODEL_NOT_READY') note('선택하신 기종은 아직 시승이 불가합니다.','err');
     else note('예약에 실패했습니다: '+m,'err');
   } finally {
@@ -675,7 +675,7 @@ function exportCSV() {
   const list = filtered();
   if (!list.length) return alert('내보낼 데이터가 없습니다.');
   const L = { applied:'예약', done:'시승완료', cancelled:'취소' };
-  const rows = [['신청일시','유형','매장','희망일','시간','기종','성함','연락처','면허','동승자','상태','메모']].concat(
+  const rows = [['신청일시','유형','대리점','희망일','시간','기종','성함','연락처','면허','동승자','상태','메모']].concat(
     list.map(e=>[e.ts, e.kind, storeName(e.store), e.date, e.time, e.model, e.name, e.phone, e.license, e.companion, L[e.status]||e.status, e.memo||''])
   );
   const csv = '\uFEFF' + rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
