@@ -308,7 +308,7 @@ let mode = '', step = 0, booked = {}, calY = 0, calM = 0;
 const R = { region:'', store:null, model:'', date:'', time:'', lic:'', comp:'없음' };
 
 const STORE_STEPS = ['지역', '대리점', '기종', '날짜', '시간', '정보'];
-const EVENT_STEPS = ['기종', '시간', '정보'];
+const EVENT_STEPS = ['기종', '날짜', '시간', '정보'];
 
 async function api(p) {
   if (!SCRIPT_URL || SCRIPT_URL.indexOf('http') !== 0) throw new Error('SCRIPT_URL이 설정되지 않았습니다.');
@@ -328,7 +328,7 @@ function korDate(s){const[y,m,d]=s.split('-');const w=['일','월','화','수','
 async function init() {
   try {
     CFG = await api({ action:'config' });
-    if (!CFG.event.enabled) {
+    if (!CFG.hq || !CFG.hq.enabled) {
       const b = document.getElementById('chEvent');
       b.classList.add('off'); b.onclick = null;
     }
@@ -338,7 +338,13 @@ async function init() {
 }
 
 function goStore(){ mode='store'; step=0; showStep(); }
-function goEvent(){ mode='event'; step=0; showStep(); }
+async function goEvent(){
+  mode='event'; step=0;
+  R.model=''; R.date=''; R.time=''; calY=0;
+  try { const r = await api({ action:'booked', storeId:'HQ' }); booked = r.booked || {}; }
+  catch(e) { booked = {}; }
+  showStep();
+}
 function back(){
   clearNote();
   if (step === 0) {
@@ -415,35 +421,48 @@ function storeStep() {
 
 /* ═══════════ 시승식 단계 ═══════════ */
 function eventStep() {
-  if (step === 0) {
-    setStep('시승하실 기종을 선택해 주세요', CFG.event.title,
-      `<div class="list">${CFG.models.map(m=> m.ready
-        ? `<button class="item ${R.model===m.name?'selected':''}" onclick="pickModel('${esc(m.name)}')">
-             <div class="b">${esc(m.brand)}</div><div class="n">${esc(m.name)}</div><div class="s">${esc(m.tag)}</div></button>`
-        : `<div class="item soon"><span class="soon-badge">출시 준비중</span>
-             <div class="b">${esc(m.brand)}</div><div class="n">${esc(m.name)}</div>
-             <div class="s">${esc(m.tag)} · 곧 만나보실 수 있습니다</div></div>`).join('')}</div>`);
-  }
-  else if (step === 1) {
-    setStep('희망 시간대를 선택해 주세요', `${CFG.event.date} · ${CFG.event.place}`,
-      `<div class="times">${CFG.eventSlots.map(s=>{
-        const full = s.left<=0;
-        return `<button class="tm ${R.time===s.time?'selected':''}" ${full?'disabled':`onclick="pickTime('${esc(s.time)}')"`}>
-          ${esc(s.time)}<span class="sub">${full?'마감':'잔여 '+s.left+'석'}</span></button>`;
+  const H = CFG.hq;
+  if (step === 0) {  // 기종
+    setStep('시승하실 기종을 선택해 주세요', `${H.name}에서 시승 가능한 기종입니다.`,
+      `<div class="list">${CFG.models.map(m=>{
+        const has = H.models.indexOf(m.name) >= 0;
+        if (!m.ready) return `<div class="item soon"><span class="soon-badge">출시 준비중</span>
+            <div class="b">${esc(m.brand)}</div><div class="n">${esc(m.name)}</div>
+            <div class="s">${esc(m.tag)} · 곧 만나보실 수 있습니다</div></div>`;
+        if (!has) return `<div class="item soon"><span class="soon-badge">본사 보유 안함</span>
+            <div class="b">${esc(m.brand)}</div><div class="n">${esc(m.name)}</div>
+            <div class="s">${esc(m.tag)}</div></div>`;
+        return `<button class="item ${R.model===m.name?'selected':''}" onclick="pickModel('${esc(m.name)}')">
+            <div class="b">${esc(m.brand)}</div><div class="n">${esc(m.name)}</div>
+            <div class="s">${esc(m.tag)}</div></button>`;
       }).join('')}</div>`);
   }
-  else {
-    setStep('참가자 정보를 입력해 주세요', '입력하신 정보로 신청이 완료됩니다.', formHTML(
-      [['행사',CFG.event.title],['기종',R.model],['일시',CFG.event.date],['시간',R.time],['장소',CFG.event.place]]));
+  else if (step === 1) {  // 날짜
+    setStep('희망 날짜를 선택해 주세요', `${H.name} · ${R.model}`, calendarHTML());
+  }
+  else if (step === 2) {  // 시간
+    setStep('희망 시간을 선택해 주세요', `${korDate(R.date)} · ${H.name}`, timesHTML());
+  }
+  else {  // 정보
+    setStep('예약자 정보를 입력해 주세요', '입력하신 정보로 예약이 확정됩니다.', formHTML(
+      [['장소',H.name],['주소',H.addr],['기종',R.model],['날짜',korDate(R.date)],['시간',R.time]]));
     bindForm();
   }
 }
 
 /* ═══════════ 캘린더 ═══════════ */
+// 현재 모드에 맞는 예약 규칙 반환
+function ctx() {
+  return mode === 'store'
+    ? { times: CFG.times, cap: CFG.capPerSlot, closed: CFG.closedWeekdays, open: CFG.openDays, lead: CFG.leadDays }
+    : { times: CFG.hq.times, cap: CFG.hq.cap, closed: CFG.hq.closedWeekdays, open: CFG.hq.openDays, lead: CFG.hq.leadDays };
+}
+
 function calendarHTML() {
+  const C = ctx();
   const today = new Date(); today.setHours(0,0,0,0);
-  const min = new Date(today); min.setDate(min.getDate() + CFG.leadDays);
-  const max = new Date(today); max.setDate(max.getDate() + CFG.openDays);
+  const min = new Date(today); min.setDate(min.getDate() + C.lead);
+  const max = new Date(today); max.setDate(max.getDate() + C.open);
   if (!calY) { calY = min.getFullYear(); calM = min.getMonth(); }
 
   const first = new Date(calY, calM, 1);
@@ -457,9 +476,9 @@ function calendarHTML() {
   for (let d=1; d<=days; d++) {
     const dt = new Date(calY, calM, d);
     const s = ymd(dt);
-    const closed = CFG.closedWeekdays.indexOf(dt.getDay()) >= 0;
+    const closed = C.closed.indexOf(dt.getDay()) >= 0;
     const inRange = dt >= min && dt <= max;
-    const allFull = CFG.times.every(t => (booked[s+'|'+t]||0) >= CFG.capPerSlot);
+    const allFull = C.times.every(t => (booked[s+'|'+t]||0) >= C.cap);
     const ok = inRange && !closed && !allFull;
     cells += `<button class="day ${R.date===s?'selected':''}" ${ok?`onclick="pickDate('${s}')"`:'disabled'}>
                 ${d}${ok?'<span class="dot"></span>':''}</button>`;
@@ -475,7 +494,7 @@ function calendarHTML() {
     </div>
     <p style="font-size:12.5px;color:var(--muted);margin-top:12px">
       · 점(●)이 있는 날짜만 예약 가능합니다.<br>
-      · 예약은 ${CFG.leadDays}일 뒤부터 ${CFG.openDays}일 이내로 가능합니다.</p>`;
+      · 예약은 ${C.lead}일 뒤부터 ${C.open}일 이내로 가능합니다.</p>`;
 }
 function moveMonth(n) {
   calM += n;
@@ -485,11 +504,14 @@ function moveMonth(n) {
 }
 
 function timesHTML() {
-  return `<div class="times">${CFG.times.map(t=>{
+  const C = ctx();
+  return `<div class="times">${C.times.map(t=>{
     const used = booked[R.date+'|'+t] || 0;
-    const full = used >= CFG.capPerSlot;
+    const left = C.cap - used;
+    const full = left <= 0;
+    const sub = full ? '예약 마감' : (C.cap > 1 ? '잔여 ' + left + '석' : '예약 가능');
     return `<button class="tm ${R.time===t?'selected':''}" ${full?'disabled':`onclick="pickTime('${t}')"`}>
-      ${t}<span class="sub">${full?'예약 마감':'예약 가능'}</span></button>`;
+      ${t}<span class="sub">${sub}</span></button>`;
   }).join('')}</div>`;
 }
 
@@ -540,7 +562,7 @@ async function pickStore(id){
   step=2; showStep();
 }
 function pickModel(m){ R.model=m; step++; showStep(); }
-function pickDate(d){ R.date=d; R.time=''; step=4; showStep(); }
+function pickDate(d){ R.date=d; R.time=''; step = (mode==='store') ? 4 : 2; showStep(); }
 function pickTime(t){ R.time=t; step++; showStep(); }
 function pickLic(el,v){ document.querySelectorAll('#lic .pill').forEach(p=>p.classList.remove('selected')); el.classList.add('selected'); R.lic=v; }
 function pickComp(el,v){ document.querySelectorAll('#comp .pill').forEach(p=>p.classList.remove('selected')); el.classList.add('selected'); R.comp=v; }
@@ -559,14 +581,14 @@ async function submitReserve() {
   btn.disabled = true; btn.textContent = '예약 중...';
   try {
     await api({ action:'reserve', data:{
-      kind: mode==='store' ? '매장시승' : '시승식',
-      storeId: R.store ? R.store.id : '',
+      kind: mode==='store' ? '대리점시승' : '본사시승',
+      storeId: mode==='store' ? (R.store ? R.store.id : '') : 'HQ',
       date: R.date, time: R.time, model: R.model,
       name, phone, license: R.lic, companion: R.comp, memo
     }});
     const rows = mode==='store'
       ? [['대리점',R.store.name],['기종',R.model],['날짜',korDate(R.date)],['시간',R.time],['성함',name]]
-      : [['행사',CFG.event.title],['기종',R.model],['일시',CFG.event.date],['시간',R.time],['성함',name]];
+      : [['장소',CFG.hq.name],['주소',CFG.hq.addr],['기종',R.model],['날짜',korDate(R.date)],['시간',R.time],['성함',name]];
     document.getElementById('doneRecap').innerHTML =
       rows.map(([k,v])=>`<div><span class="k">${k}</span><span>${esc(v)}</span></div>`).join('');
     document.getElementById('wizard').style.display='none';
