@@ -43,6 +43,12 @@
   .hero p{font-size:14px;color:#9FD9BC;margin-top:9px;font-weight:500}
 
   main{max-width:620px;margin:0 auto;padding:20px 16px 60px}
+  main.wide{max-width:1240px}
+  @media(min-width:900px){
+    main.wide .stat{min-width:150px}
+    main.wide table{font-size:13.5px}
+    main.wide th,main.wide td{padding:12px 14px}
+  }
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 20px}
   .card+.card{margin-top:14px}
   .card h2{font-size:17px;font-weight:800;letter-spacing:-0.01em}
@@ -309,7 +315,7 @@
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQy2Eu3jY9qfFf_-uId1A0gGXqVjGuGtTRfJ5-MIZ-rrTISOTgzRrTjaqxHh-6JfVe/exec';
 
 let CFG = null, adminToken = '', entries = [], adminStores = [];
-let mode = '', step = 0, booked = {}, calY = 0, calM = 0;
+let mode = '', step = 0, booked = {}, calY = 0, calM = 0, bookedP = null;
 const R = { region:'', store:null, model:'', date:'', time:'', lic:'', comp:'없음' };
 
 const STORE_STEPS = ['지역', '대리점', '기종', '날짜', '시간', '정보'];
@@ -343,12 +349,24 @@ async function init() {
 }
 
 function goStore(){ mode='store'; step=0; showStep(); }
-async function goEvent(){
+function goEvent(){
   mode='event'; step=0;
   R.model=''; R.date=''; R.time=''; calY=0;
-  try { const r = await api({ action:'booked', storeId:'HQ' }); booked = r.booked || {}; }
-  catch(e) { booked = {}; }
+  prefetchBooked('HQ');   // 백그라운드로 예약현황 로딩 (화면은 즉시 전환)
   showStep();
+}
+
+// 예약현황을 미리 받아두기 (기다리지 않음)
+function prefetchBooked(storeId) {
+  booked = {};
+  bookedP = api({ action:'booked', storeId })
+    .then(r => { booked = r.booked || {}; return booked; })
+    .catch(() => { booked = {}; return booked; });
+}
+
+// 캘린더를 그리기 직전에만 로딩 완료를 기다림
+async function ensureBooked() {
+  if (bookedP) { await bookedP; bookedP = null; }
 }
 function back(){
   clearNote();
@@ -412,7 +430,7 @@ function storeStep() {
       }).join('')}</div>`);
   }
   else if (step === 3) {  // 날짜
-    setStep('희망 날짜를 선택해 주세요', `${R.store.name} · ${R.model}`, calendarHTML());
+    showCalendar(`${R.store.name} · ${R.model}`);
   }
   else if (step === 4) {  // 시간
     setStep('희망 시간을 선택해 주세요', `${korDate(R.date)} · ${R.store.name}`, timesHTML());
@@ -443,7 +461,7 @@ function eventStep() {
       }).join('')}</div>`);
   }
   else if (step === 1) {  // 날짜
-    setStep('희망 날짜를 선택해 주세요', `${H.name} · ${R.model}`, calendarHTML());
+    showCalendar(`${H.name} · ${R.model}`);
   }
   else if (step === 2) {  // 시간
     setStep('희망 시간을 선택해 주세요', `${korDate(R.date)} · ${H.name}`, timesHTML());
@@ -461,6 +479,14 @@ function ctx() {
   return mode === 'store'
     ? { times: CFG.times, cap: CFG.capPerSlot, closed: CFG.closedWeekdays, open: CFG.openDays, lead: CFG.leadDays }
     : { times: CFG.hq.times, cap: CFG.hq.cap, closed: CFG.hq.closedWeekdays, open: CFG.hq.openDays, lead: CFG.hq.leadDays };
+}
+
+// 예약현황 로딩을 기다렸다가 캘린더 표시
+async function showCalendar(desc) {
+  setStep('희망 날짜를 선택해 주세요', desc, '<div class="loading">예약 가능한 날짜를 확인하는 중...</div>');
+  await ensureBooked();
+  if (step !== (mode === 'store' ? 3 : 1)) return;  // 사용자가 이미 다른 단계로 이동했으면 무시
+  document.getElementById('stepBody').innerHTML = calendarHTML();
 }
 
 function calendarHTML() {
@@ -561,11 +587,10 @@ function bindForm() {
 
 /* ═══════════ 선택 핸들러 ═══════════ */
 function pickRegion(r){ R.region=r; R.store=null; step=1; showStep(); }
-async function pickStore(id){
+function pickStore(id){
   R.store = CFG.stores.filter(s=>s.id===id)[0];
   R.model=''; R.date=''; R.time=''; calY=0;
-  try { const r = await api({ action:'booked', storeId:id }); booked = r.booked || {}; }
-  catch(e) { booked = {}; }
+  prefetchBooked(id);   // 백그라운드 로딩
   step=2; showStep();
 }
 function pickModel(m){ R.model=m; step++; showStep(); }
@@ -613,8 +638,8 @@ async function submitReserve() {
 }
 
 /* ═══════════ 관리자 ═══════════ */
-function openAdmin(){ document.getElementById('wizard').style.display='none'; document.getElementById('adminView').style.display='block'; window.scrollTo({top:0}); }
-function closeAdmin(){ document.getElementById('adminView').style.display='none'; document.getElementById('wizard').style.display='block'; }
+function openAdmin(){ document.getElementById('wizard').style.display='none'; document.getElementById('adminView').style.display='block'; document.querySelector('main').classList.add('wide'); window.scrollTo({top:0}); }
+function closeAdmin(){ document.getElementById('adminView').style.display='none'; document.getElementById('wizard').style.display='block'; document.querySelector('main').classList.remove('wide'); }
 async function unlock() {
   const pass = document.getElementById('fPass').value;
   const n = document.getElementById('lockNotice');
