@@ -75,6 +75,8 @@
   .ch .arw{position:absolute;right:20px;top:50%;transform:translateY(-50%);
            font-size:20px;color:var(--green);font-weight:800}
   .ch.off{background:var(--paper);cursor:not-allowed;opacity:.7}
+  .ch.loading{opacity:.55;cursor:progress}
+  .ch-loading-note{text-align:center;font-size:13px;color:var(--muted);margin-top:14px}
 
   /* 리스트형 선택 */
   .list{display:flex;flex-direction:column;gap:9px}
@@ -242,6 +244,7 @@
           <span class="arw">›</span>
         </button>
       </div>
+      <div class="ch-loading-note" id="chLoad">정보를 불러오는 중입니다...</div>
       <div class="admin-link"><button onclick="openAdmin()">운영자 로그인</button></div>
     </div>
 
@@ -318,7 +321,7 @@
 /* ═══════════ 설정 ═══════════ */
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQy2Eu3jY9qfFf_-uId1A0gGXqVjGuGtTRfJ5-MIZ-rrTISOTgzRrTjaqxHh-6JfVe/exec';
 
-let CFG = null, adminToken = '', entries = [], adminStores = [];
+let CFG = null, cfgP = null, adminToken = '', entries = [], adminStores = [];
 let mode = '', step = 0, booked = {}, calY = 0, calM = 0, bookedP = null;
 const R = { region:'', store:null, model:'', date:'', time:'', lic:'', comp:'없음' };
 
@@ -340,20 +343,50 @@ function clearNote(){document.getElementById('notice').className='notice';}
 function korDate(s){const[y,m,d]=s.split('-');const w=['일','월','화','수','목','금','토'][new Date(s+'T00:00:00').getDay()];return `${Number(m)}월 ${Number(d)}일 (${w})`;}
 
 /* ═══════════ 초기 로드 ═══════════ */
-async function init() {
-  try {
-    CFG = await api({ action:'config' });
-    if (!CFG.hq || !CFG.hq.enabled) {
-      const b = document.getElementById('chEvent');
-      b.classList.add('off'); b.onclick = null;
-    }
-  } catch (e) {
-    document.getElementById('s0').innerHTML = '<div class="empty">정보를 불러오지 못했습니다.<br>' + esc(e.message) + '</div>';
-  }
+function setChoiceLoading(on, msg) {
+  document.querySelectorAll('#s0 .ch').forEach(b => b.classList.toggle('loading', on));
+  const n = document.getElementById('chLoad');
+  if (n) { n.textContent = msg || ''; n.style.display = msg ? 'block' : 'none'; }
 }
 
-function goStore(){ mode='store'; step=0; showStep(); }
-function goEvent(){
+function init() {
+  setChoiceLoading(true, '정보를 불러오는 중입니다...');
+  cfgP = api({ action:'config' })
+    .then(r => {
+      CFG = r;
+      setChoiceLoading(false, '');
+      if (!CFG.hq || !CFG.hq.enabled) {
+        const b = document.getElementById('chEvent');
+        b.classList.add('off'); b.onclick = null;
+      }
+      return CFG;
+    })
+    .catch(e => {
+      setChoiceLoading(false, '');
+      document.getElementById('s0').innerHTML =
+        '<div class="empty">정보를 불러오지 못했습니다.<br>' + esc(e.message) +
+        '<br><br><button class="btn btn-sm btn-ghost" onclick="location.reload()">다시 시도</button></div>';
+      return null;
+    });
+}
+
+// 설정 로딩이 끝날 때까지 기다림 (이미 끝났으면 즉시 반환)
+async function ensureCfg() {
+  if (CFG) return true;
+  setChoiceLoading(true, '정보를 불러오는 중입니다... 잠시만 기다려 주세요');
+  await cfgP;
+  setChoiceLoading(false, '');
+  return !!CFG;
+}
+
+async function goStore(){
+  if (!await ensureCfg()) return;
+  mode='store'; step=0;
+  R.region=''; R.store=null; R.model=''; R.date=''; R.time=''; calY=0;
+  showStep();
+}
+async function goEvent(){
+  if (!await ensureCfg()) return;
   mode='event'; step=0;
   R.model=''; R.date=''; R.time=''; calY=0;
   prefetchBooked('HQ');   // 백그라운드로 예약현황 로딩 (화면은 즉시 전환)
@@ -390,7 +423,13 @@ function showStep() {
   const labels = mode==='store' ? STORE_STEPS : EVENT_STEPS;
   document.getElementById('stpLabel').textContent = `STEP ${step+1} / ${labels.length} · ${labels[step]}`;
   document.getElementById('stpBar').innerHTML = labels.map((_,i)=>`<div class="stp ${i<=step?'on':''}"></div>`).join('');
-  (mode==='store' ? storeStep : eventStep)();
+  try {
+    (mode==='store' ? storeStep : eventStep)();
+  } catch (e) {
+    console.error(e);
+    setStep('잠시 문제가 발생했습니다', '아래 버튼을 눌러 다시 시도해 주세요.',
+      '<button class="btn btn-primary" onclick="location.reload()">새로고침</button>');
+  }
   window.scrollTo({ top:0, behavior:'smooth' });
 }
 function setStep(title, desc, html) {
