@@ -214,8 +214,10 @@
         cursor:pointer;font-family:inherit;text-decoration:underline}
   #adminView{display:none}
   .stat-row{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:13px}
-  .stat{flex:1;min-width:100px;background:var(--card);border:1px solid var(--line);
-        border-radius:12px;padding:11px 13px}
+  .stat{flex:1;min-width:100px;background:var(--card);border:1.5px solid var(--line);
+        border-radius:12px;padding:11px 13px;cursor:pointer;user-select:none}
+  .stat:hover{border-color:var(--green)}
+  .stat.active{border-color:var(--green);background:var(--green-soft)}
   .stat .n{font-size:21px;font-weight:800}
   .stat .l{font-size:11.5px;color:var(--muted);font-weight:600}
   .table-wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px}
@@ -309,11 +311,12 @@
       <div style="margin-top:14px"><button class="btn btn-sm btn-ghost" onclick="closeAdmin()">← 예약 화면으로</button></div>
     </div>
     <div id="adminDash" style="display:none">
-      <div class="stat-row">
-        <div class="stat"><div class="n" id="stTotal">-</div><div class="l">전체 예약</div></div>
-        <div class="stat"><div class="n" id="stStore" style="color:var(--blue)">-</div><div class="l">대리점 시승</div></div>
-        <div class="stat"><div class="n" id="stEvent" style="color:var(--green)">-</div><div class="l">본사 시승</div></div>
-        <div class="stat"><div class="n" id="stDone">-</div><div class="l">시승 완료</div></div>
+      <div class="stat-row" id="statRow">
+        <div class="stat active" data-f="all" onclick="statFilter('all')"><div class="n" id="stTotal">-</div><div class="l">전체 예약</div></div>
+        <div class="stat" data-f="store" onclick="statFilter('store')"><div class="n" id="stStore" style="color:var(--blue)">-</div><div class="l">대리점 시승</div></div>
+        <div class="stat" data-f="hq" onclick="statFilter('hq')"><div class="n" id="stEvent" style="color:var(--green)">-</div><div class="l">본사 시승</div></div>
+        <div class="stat" data-f="done" onclick="statFilter('done')"><div class="n" id="stDone">-</div><div class="l">시승 완료</div></div>
+        <div class="stat" data-f="cancelled" onclick="statFilter('cancelled')"><div class="n" id="stCancel" style="color:var(--red)">-</div><div class="l">취소</div></div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
         <input type="text" id="fSearch" placeholder="이름·연락처·대리점 검색" oninput="renderTable()"
@@ -339,7 +342,7 @@
 /* ═══════════ 설정 ═══════════ */
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQy2Eu3jY9qfFf_-uId1A0gGXqVjGuGtTRfJ5-MIZ-rrTISOTgzRrTjaqxHh-6JfVe/exec';
 
-let CFG = null, cfgP = null, adminToken = '', entries = [], adminStores = [];
+let CFG = null, cfgP = null, adminToken = '', entries = [], adminStores = [], statMode = 'all';
 let mode = '', step = 0, booked = {}, calY = 0, calM = 0, bookedP = null;
 const R = { region:'', store:null, model:'', date:'', time:'', lic:'', comp:'없음' };
 
@@ -772,15 +775,37 @@ function renderStats() {
   document.getElementById('stStore').textContent = act.filter(e=>e.kind==='대리점시승').length;
   document.getElementById('stEvent').textContent = act.filter(e=>e.kind==='본사시승').length;
   document.getElementById('stDone').textContent = entries.filter(e=>e.status==='done').length;
+  document.getElementById('stCancel').textContent = entries.filter(e=>e.status==='cancelled').length;
 }
+function statFilter(mode) {
+  statMode = mode;
+  document.querySelectorAll('#statRow .stat').forEach(c => c.classList.toggle('active', c.dataset.f === mode));
+  renderTable();
+}
+
 function filtered() {
   const q = document.getElementById('fSearch').value.trim().toLowerCase();
-  return entries.filter(e=>!q || [e.name,e.phone,storeName(e.store),e.model,e.date,e.memo].join(' ').toLowerCase().includes(q));
+  return entries.filter(e => {
+    // 카드 필터
+    if (statMode === 'store'  && !(e.kind === '대리점시승' && e.status !== 'cancelled')) return false;
+    if (statMode === 'hq'     && !(e.kind === '본사시승'   && e.status !== 'cancelled')) return false;
+    if (statMode === 'done'   && e.status !== 'done') return false;
+    if (statMode === 'cancelled' && e.status !== 'cancelled') return false;
+    if (statMode === 'all'    && e.status === 'cancelled') return false;
+    // 검색어
+    if (q && ![e.name,e.phone,storeName(e.store),e.model,e.date,e.memo].join(' ').toLowerCase().includes(q)) return false;
+    return true;
+  });
 }
 function renderTable() {
   const tb = document.getElementById('tbody');
   const list = filtered();
-  if (!list.length) { tb.innerHTML='<tr><td colspan="12" class="empty">예약 내역이 없습니다.</td></tr>'; return; }
+  if (!list.length) {
+    const msg = { all:'예약 내역이 없습니다.', store:'대리점 시승 예약이 없습니다.',
+                  hq:'본사 시승 예약이 없습니다.', done:'시승 완료 건이 없습니다.',
+                  cancelled:'취소된 예약이 없습니다.' }[statMode] || '표시할 내역이 없습니다.';
+    tb.innerHTML = '<tr><td colspan="12" class="empty">' + msg + '</td></tr>'; return;
+  }
   const L = { applied:'예약', done:'시승완료', cancelled:'취소' };
   const p = n => String(n).padStart(2,'0');
   tb.innerHTML = list.map(e=>{
