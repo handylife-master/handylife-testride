@@ -91,7 +91,16 @@
   .ch .d{font-size:13.5px;color:var(--muted);margin-top:5px;line-height:1.5;padding-right:24px;display:block}
   .ch .arw{position:absolute;right:20px;top:50%;transform:translateY(-50%);
            font-size:20px;color:var(--green);font-weight:800}
-  .ch.off{background:var(--paper);cursor:not-allowed;opacity:.7}
+  .ch.off{background:var(--paper);cursor:not-allowed;opacity:.62}
+  .ch.off .t{color:var(--muted)}
+  .ch.off .arw{display:none}
+  .closed-tag{position:absolute;top:16px;right:16px;background:var(--red-soft);color:var(--red);
+              font-size:11.5px;font-weight:800;padding:5px 12px;border-radius:99px}
+  .notice-bar{background:var(--amber-soft);border:1.5px solid #E8C97E;border-radius:14px;
+              padding:15px 17px;margin-bottom:14px;display:flex;gap:11px;align-items:flex-start}
+  .notice-bar .ic{font-size:20px;line-height:1.2;flex-shrink:0}
+  .notice-bar .t{font-size:14.5px;font-weight:800;color:#8A6212;line-height:1.45}
+  .notice-bar .d{font-size:13px;color:#9A7420;margin-top:4px;line-height:1.5}
   .ch.loading{opacity:.55;cursor:progress}
   .ch-loading-note{text-align:center;font-size:13px;color:var(--muted);margin-top:14px}
 
@@ -255,14 +264,15 @@
 <main>
   <div id="wizard">
     <!-- ══ STEP 0 : 유형 선택 ══ -->
+    <div id="noticeBar"></div>
     <div class="card" id="s0">
       <h2>어떤 방식으로 시승하시겠어요?</h2>
       <p class="cs">원하시는 방식을 선택해 주세요.</p>
       <div class="choice">
-        <button class="ch" onclick="goStore()">
+        <button class="ch" id="chStore" onclick="goStore()">
           <span class="ic">🏪</span>
           <span class="t">대리점 시승 예약</span>
-          <span class="d">가장 가까운 시승점을 직접 선택해주세요</span>
+          <span class="d" id="storeDesc">가장 가까운 시승점을 직접 선택해주세요</span>
           <span class="arw">›</span>
         </button>
         <button class="ch" id="chEvent" onclick="goEvent()">
@@ -389,6 +399,20 @@ function init() {
         const b = document.getElementById('chEvent');
         b.classList.add('off'); b.onclick = null;
       }
+      // 대리점 시승 운영 여부
+      if (CFG.storeEnabled === false) {
+        const b = document.getElementById('chStore');
+        b.classList.add('off');
+        b.onclick = null;
+        b.insertAdjacentHTML('afterbegin', '<span class="closed-tag">예약 불가</span>');
+        document.getElementById('storeDesc').textContent = CFG.storeClosedSub || '현재는 본사 시승만 가능합니다';
+        document.getElementById('noticeBar').innerHTML =
+          `<div class="notice-bar"><span class="ic">📢</span><div>
+             <div class="t">${esc(CFG.storeClosedMsg || '대리점 시승 준비 중입니다')}</div>
+             <div class="d">현재는 <strong>본사 시승만 예약 가능</strong>합니다.<br>
+               대리점 시승은 시승차 배치 후 순차적으로 열릴 예정입니다.</div>
+           </div></div>`;
+      }
       return CFG;
     })
     .catch(e => {
@@ -411,6 +435,7 @@ async function ensureCfg() {
 
 async function goStore(){
   if (!await ensureCfg()) return;
+  if (CFG.storeEnabled === false) return;
   mode='store'; step=0;
   R.region=''; R.store=null; R.model=''; R.date=''; R.time=''; calY=0;
   showStep();
@@ -734,6 +759,7 @@ async function submitReserve() {
     if (m==='SLOT_FULL') note('아쉽게도 방금 해당 시간이 마감되었습니다. 다른 시간을 선택해 주세요.','err');
     else if (m==='DUPLICATE_PHONE') note('이미 예약하신 연락처입니다. 변경이 필요하시면 대리점 또는 본사로 연락 주세요.','err');
     else if (m==='MODEL_NOT_READY') note('선택하신 기종은 아직 시승이 불가합니다.','err');
+    else if (m==='STORE_CLOSED') note('현재 대리점 시승은 준비 중입니다. 본사 시승으로 예약해 주세요.','err');
     else if (m==='DATE_CLOSED') note('선택하신 날짜는 예약이 불가합니다. 다른 날짜를 선택해 주세요.','err');
     else note('예약에 실패했습니다: '+m,'err');
   } finally {
