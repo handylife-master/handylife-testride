@@ -231,6 +231,14 @@
   .badge.done{background:var(--green-soft);color:var(--green-deep)}
   .badge.cancelled{background:var(--red-soft);color:var(--red)}
   .badge.k{background:#EEF1EF;color:var(--ink)}
+  .date-btn{background:none;border:none;font-family:inherit;font-size:13px;font-weight:700;
+            color:var(--green-deep);cursor:pointer;padding:2px 6px;border-radius:6px;text-decoration:underline}
+  .date-btn:hover{background:var(--green-soft)}
+  .date-btn.on{background:var(--green);color:#fff;text-decoration:none}
+  .filter-chip{display:inline-flex;align-items:center;gap:8px;background:var(--green-soft);
+               color:var(--green-deep);font-size:13px;font-weight:700;padding:8px 14px;border-radius:99px;margin-bottom:12px}
+  .filter-chip button{background:none;border:none;color:var(--green-deep);font-size:15px;
+                      font-weight:800;cursor:pointer;line-height:1;padding:0}
   footer{text-align:center;font-size:12px;color:var(--muted);padding:0 16px 34px}
 </style>
 </head>
@@ -318,6 +326,7 @@
         <div class="stat" data-f="done" onclick="statFilter('done')"><div class="n" id="stDone">-</div><div class="l">시승 완료</div></div>
         <div class="stat" data-f="cancelled" onclick="statFilter('cancelled')"><div class="n" id="stCancel" style="color:var(--red)">-</div><div class="l">취소</div></div>
       </div>
+      <div id="dateChip"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
         <input type="text" id="fSearch" placeholder="이름·연락처·대리점 검색" oninput="renderTable()"
                style="flex:1;min-width:140px;padding:9px 11px;font-size:13.5px">
@@ -342,7 +351,7 @@
 /* ═══════════ 설정 ═══════════ */
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQy2Eu3jY9qfFf_-uId1A0gGXqVjGuGtTRfJ5-MIZ-rrTISOTgzRrTjaqxHh-6JfVe/exec';
 
-let CFG = null, cfgP = null, adminToken = '', entries = [], adminStores = [], statMode = 'all';
+let CFG = null, cfgP = null, adminToken = '', entries = [], adminStores = [], statMode = 'all', dateFilter = '';
 let mode = '', step = 0, booked = {}, calY = 0, calM = 0, bookedP = null;
 const R = { region:'', store:null, model:'', date:'', time:'', lic:'', comp:'없음' };
 
@@ -783,9 +792,16 @@ function statFilter(mode) {
   renderTable();
 }
 
+function pickDateFilter(d) {
+  dateFilter = (dateFilter === d) ? '' : d;   // 같은 날짜 다시 누르면 해제
+  renderTable();
+}
+function clearDateFilter() { dateFilter = ''; renderTable(); }
+
 function filtered() {
   const q = document.getElementById('fSearch').value.trim().toLowerCase();
   return entries.filter(e => {
+    if (dateFilter && e.date !== dateFilter) return false;
     // 카드 필터
     if (statMode === 'store'  && !(e.kind === '대리점시승' && e.status !== 'cancelled')) return false;
     if (statMode === 'hq'     && !(e.kind === '본사시승'   && e.status !== 'cancelled')) return false;
@@ -797,13 +813,24 @@ function filtered() {
     return true;
   });
 }
+function renderDateChip() {
+  const el = document.getElementById('dateChip');
+  if (!el) return;
+  if (!dateFilter) { el.innerHTML = ''; return; }
+  const cnt = entries.filter(e => e.date === dateFilter && e.status !== 'cancelled').length;
+  el.innerHTML = `<span class="filter-chip">📅 ${esc(dateFilter)} · ${cnt}건
+    <button onclick="clearDateFilter()" title="필터 해제">✕</button></span>`;
+}
+
 function renderTable() {
   const tb = document.getElementById('tbody');
+  renderDateChip();
   const list = filtered();
   if (!list.length) {
-    const msg = { all:'예약 내역이 없습니다.', store:'대리점 시승 예약이 없습니다.',
-                  hq:'본사 시승 예약이 없습니다.', done:'시승 완료 건이 없습니다.',
-                  cancelled:'취소된 예약이 없습니다.' }[statMode] || '표시할 내역이 없습니다.';
+    let msg = { all:'예약 내역이 없습니다.', store:'대리점 시승 예약이 없습니다.',
+                hq:'본사 시승 예약이 없습니다.', done:'시승 완료 건이 없습니다.',
+                cancelled:'취소된 예약이 없습니다.' }[statMode] || '표시할 내역이 없습니다.';
+    if (dateFilter) msg = dateFilter + ' 에 해당하는 예약이 없습니다.';
     tb.innerHTML = '<tr><td colspan="12" class="empty">' + msg + '</td></tr>'; return;
   }
   const L = { applied:'예약', done:'시승완료', cancelled:'취소' };
@@ -815,7 +842,7 @@ function renderTable() {
       <td>${ts}</td>
       <td><span class="badge k">${esc(e.kind)}</span></td>
       <td>${esc(e.kind==='본사시승' ? (CFG && CFG.hq ? CFG.hq.name : '본사') : storeName(e.store))}</td>
-      <td>${esc(e.date)}</td>
+      <td>${e.date ? `<button class="date-btn ${dateFilter===e.date?'on':''}" onclick="pickDateFilter('${esc(e.date)}')">${esc(e.date)}</button>` : '-'}</td>
       <td><strong>${esc(e.time)}</strong></td>
       <td>${esc(e.model)}</td>
       <td><strong>${esc(e.name)}</strong></td>
