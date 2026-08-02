@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>핸디라이프 전기이륜차 시승 예약</title>
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="핸디라이프">
+<meta property="og:title" content="핸디라이프 전기이륜차 시승 예약">
+<meta property="og:description" content="가까운 매장에서 원하는 날짜에, 직접 타보고 결정하세요. 참가비 무료.">
+<meta property="og:image" content="https://handylife-testride.vercel.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="description" content="핸디라이프 전기이륜차 시승 예약">
+
+<style>
+  :root {
+    --ink:#14231B; --paper:#F6F8F5; --card:#FFF;
+    --green:#146B45; --green-deep:#0D4A30; --green-soft:#E4F0E9;
+    --line:#DDE5DF; --muted:#6B7A70;
+    --amber:#B9821B; --amber-soft:#FBF1DC;
+    --red:#B3382E; --red-soft:#FBE4E2;
+    --blue:#1E5A9E; --blue-soft:#E3EDF9;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Noto Sans KR','Malgun Gothic',sans-serif;
+       background:var(--paper);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased}
+  /* 모바일 브라우저의 버튼 기본 스타일 초기화 (레이아웃 밀림 방지) */
+  button{appearance:none;-webkit-appearance:none;min-width:0;font-family:inherit;
+         border:none;background:none;color:inherit}
+  img{max-width:100%}
+
+  /* Hero */
+  .hero{background:var(--green-deep);color:#fff;position:relative;overflow:hidden;padding:34px 20px 30px}
+  .hero::before,.hero::after{content:'';position:absolute;border-radius:50%;background:#146B45;opacity:.45}
+  .hero::before{width:360px;height:360px;top:-170px;right:-120px}
+  .hero::after{width:260px;height:260px;bottom:-160px;left:-90px;opacity:.35}
+  .hero-in{max-width:620px;margin:0 auto;position:relative;z-index:2}
+  .eyebrow{display:inline-block;font-size:12px;font-weight:800;letter-spacing:2px;
+           background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);
+           padding:5px 13px;border-radius:99px;margin-bottom:13px}
+  .hero h1{font-size:27px;font-weight:900;letter-spacing:-0.03em;line-height:1.3}
+  .hero h1 .a{color:#B7E4CC}
+  .hero p{font-size:14px;color:#9FD9BC;margin-top:9px;font-weight:500}
+
+  main{max-width:620px;margin:0 auto;padding:20px 16px 60px}
+  main.wide{max-width:1240px}
+  @media(max-width:430px){
+    main{padding:16px 10px 60px}
+    .card{padding:18px 13px}
+    .cal{gap:3px}
+    .day{font-size:13.5px;border-radius:8px}
+    .dow{font-size:11px}
+    .cal-head .m{font-size:15.5px}
+  }
+  @media(max-width:360px){
+    .card{padding:16px 10px}
+    .cal{gap:2px}
+    .day{font-size:12.5px}
+  }
+  @media(min-width:900px){
+    main.wide .stat{min-width:150px}
+    main.wide table{font-size:13.5px}
+    main.wide th,main.wide td{padding:12px 14px}
+  }
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 20px}
+  .card+.card{margin-top:14px}
+  .card h2{font-size:17px;font-weight:800;letter-spacing:-0.01em}
+  .card .cs{font-size:13.5px;color:var(--muted);margin:3px 0 16px}
+
+  /* 단계 표시 */
+  .steps{display:flex;align-items:center;gap:6px;margin-bottom:14px}
+  .stp{flex:1;height:5px;border-radius:99px;background:var(--line)}
+  .stp.on{background:var(--green)}
+  .stp-label{font-size:12.5px;color:var(--muted);font-weight:700;margin-bottom:8px}
+
+  .back{background:none;border:none;color:var(--muted);font-size:13.5px;font-weight:700;
+        cursor:pointer;font-family:inherit;padding:0;margin-bottom:12px}
+  .back:hover{color:var(--green)}
+
+  /* 시작 선택 */
+  .choice{display:flex;flex-direction:column;gap:12px}
+  .ch{position:relative;border:1.5px solid var(--line);border-radius:16px;padding:22px 20px;
+      background:#fff;cursor:pointer;text-align:left;font-family:inherit;width:100%}
+  .ch:hover{border-color:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
+  .ch .ic{font-size:30px;margin-bottom:8px;display:block}
+  .ch .t{font-size:19px;font-weight:900;letter-spacing:-0.02em}
+  .ch .d{font-size:13.5px;color:var(--muted);margin-top:5px;line-height:1.5;padding-right:24px;display:block}
+  .ch .arw{position:absolute;right:20px;top:50%;transform:translateY(-50%);
+           font-size:20px;color:var(--green);font-weight:800}
+  .ch.off{background:var(--paper);cursor:not-allowed;opacity:.7}
+  .ch.loading{opacity:.55;cursor:progress}
+  .ch-loading-note{text-align:center;font-size:13px;color:var(--muted);margin-top:14px}
+
+  /* 리스트형 선택 */
+  .list{display:flex;flex-direction:column;gap:9px}
+  .item{position:relative;border:1.5px solid var(--line);border-radius:12px;padding:14px 15px;
+        background:#fff;cursor:pointer;text-align:left;font-family:inherit;width:100%}
+  .item:hover{border-color:var(--green)}
+  .item.selected{border-color:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
+  .item.selected::after{content:'✓';position:absolute;top:14px;right:15px;width:22px;height:22px;
+        border-radius:50%;background:var(--green);color:#fff;font-size:13px;font-weight:800;
+        display:flex;align-items:center;justify-content:center}
+  .item .n{font-size:16px;font-weight:800;letter-spacing:-0.01em}
+  .item .s{font-size:12.8px;color:var(--muted);margin-top:3px}
+  .item .b{font-size:10.5px;font-weight:800;color:var(--muted);letter-spacing:.1em}
+  .item.soon{background:var(--paper);cursor:not-allowed;opacity:.78}
+  .item.soon .n{color:var(--muted)}
+  .soon-badge{position:absolute;top:14px;right:15px;background:var(--amber-soft);color:var(--amber);
+        font-size:11px;font-weight:800;padding:4px 10px;border-radius:99px}
+
+  .area-h{display:flex;align-items:center;gap:9px;margin:16px 0 9px;font-size:13px;
+          font-weight:800;color:var(--green-deep)}
+  .area-h:first-child{margin-top:0}
+  .area-h::after{content:'';flex:1;height:1px;background:var(--line)}
+  .regions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  @media(max-width:420px){.regions{grid-template-columns:1fr 1fr}}
+  .rg{border:1.5px solid var(--line);background:#fff;color:var(--ink);border-radius:11px;
+      padding:14px 6px;font-size:14.5px;font-weight:800;cursor:pointer;font-family:inherit}
+  .rg:hover{border-color:var(--green);color:var(--green)}
+  .rg .c{display:block;font-size:11.5px;font-weight:600;color:var(--muted);margin-top:2px}
+  .rg.selected{border-color:var(--green);background:var(--green-soft);color:var(--green-deep)}
+
+  /* 캘린더 */
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .cal-head .m{font-size:16.5px;font-weight:900;letter-spacing:-0.02em}
+  .cal-nav{background:#fff;border:1.5px solid var(--line);border-radius:9px;width:34px;height:34px;
+           cursor:pointer;font-size:15px;font-weight:800;color:var(--ink);font-family:inherit}
+  .cal-nav:disabled{opacity:.35;cursor:not-allowed}
+  .cal-nav:not(:disabled):hover{border-color:var(--green);color:var(--green)}
+  .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;width:100%}
+  .dow{text-align:center;font-size:11.5px;font-weight:800;color:var(--muted);padding:6px 0;min-width:0;overflow:hidden}
+  .dow.sun{color:var(--red)}
+  .day{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+       border:1.5px solid transparent;border-radius:10px;background:#fff;cursor:pointer;
+       font-family:inherit;font-size:14.5px;font-weight:700;color:var(--ink);padding:0;
+       min-width:0;width:100%;overflow:hidden}
+  .day:hover:not(:disabled){border-color:var(--green)}
+  .day.selected{background:var(--green);color:#fff;border-color:var(--green)}
+  .day:disabled{background:transparent;color:#C7D2CB;cursor:not-allowed}
+  .day.empty{background:transparent;cursor:default}
+  .day .dot{width:4px;height:4px;border-radius:50%;background:var(--green);margin-top:2px}
+  .day.selected .dot{background:#fff}
+  .day:disabled .dot{display:none}
+
+  /* 시간 */
+  .times{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  @media(max-width:420px){.times{grid-template-columns:1fr 1fr}}
+  .tm{border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:13px 6px;
+      font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;color:var(--ink)}
+  .tm:hover:not(:disabled){border-color:var(--green)}
+  .tm.selected{border-color:var(--green);background:var(--green-soft);color:var(--green-deep)}
+  .tm:disabled{background:var(--paper);color:#B4C2B8;cursor:not-allowed}
+  .tm .sub{display:block;font-size:11px;font-weight:700;margin-top:2px;color:var(--muted)}
+  .tm:disabled .sub{color:var(--red)}
+  .tm.selected .sub{color:var(--green)}
+
+  /* 폼 */
+  .field{margin-bottom:16px}
+  .field>label{display:block;font-size:13.5px;font-weight:700;margin-bottom:7px}
+  .req{color:var(--red)} .opt{font-weight:500;color:var(--muted);font-size:12.5px}
+  input[type=text],input[type=tel],input[type=password],textarea{
+    width:100%;padding:12px 13px;font-size:15px;font-family:inherit;
+    border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+  input:focus,textarea:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
+  textarea{resize:vertical;min-height:60px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:520px){.row2{grid-template-columns:1fr;gap:0}}
+  .pills{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  @media(max-width:480px){.pills{grid-template-columns:1fr 1fr}}
+  .pill{border:1.5px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;
+        padding:11px 6px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center}
+  .pill.selected{border-color:var(--green);background:var(--green-soft);color:var(--green-deep)}
+
+  .recap{background:var(--green-soft);border-radius:12px;padding:14px 16px;margin-bottom:18px;font-size:14px}
+  .recap div{display:flex;gap:10px;padding:3px 0}
+  .recap .k{color:var(--green-deep);font-weight:800;min-width:52px;flex-shrink:0}
+
+  .solo{margin-top:10px;background:var(--amber-soft);border-radius:10px;padding:12px 14px;
+        font-size:12.8px;color:var(--amber);line-height:1.55}
+  .solo strong{color:var(--amber)}
+  .agree{display:flex;gap:10px;align-items:flex-start;background:var(--paper);
+         border-radius:10px;padding:13px 14px;margin-bottom:14px}
+  .agree input{margin-top:3px;width:17px;height:17px;accent-color:var(--green);flex-shrink:0}
+  .agree label{font-size:12.8px;color:var(--muted);line-height:1.5}
+
+  .btn{border:none;cursor:pointer;font-family:inherit;font-weight:800;border-radius:11px;
+       font-size:16px;padding:15px 20px}
+  .btn-primary{background:var(--green);color:#fff;width:100%}
+  .btn-primary:hover{background:var(--green-deep)}
+  .btn-primary:disabled{background:#A9BDB2;cursor:not-allowed}
+  .btn-sm{font-size:13px;padding:8px 13px;font-weight:700;border-radius:9px}
+  .btn-ghost{background:#fff;border:1.5px solid var(--line);color:var(--ink)}
+  .btn-ghost:hover{border-color:var(--green);color:var(--green)}
+  .btn-danger{background:#fff;border:1.5px solid var(--line);color:var(--red)}
+
+  .notice{display:none;margin-top:14px;padding:13px 15px;border-radius:10px;font-size:14px;font-weight:600}
+  .notice.ok{display:block;background:var(--green-soft);color:var(--green-deep)}
+  .notice.err{display:block;background:var(--red-soft);color:var(--red)}
+  .empty,.loading{padding:34px 18px;text-align:center;color:var(--muted);font-size:14px}
+
+  #done{display:none;text-align:center;padding:30px 20px}
+  #done .ic{font-size:46px}
+  #done h2{font-size:22px;font-weight:900;margin:10px 0 6px}
+  #done p{font-size:14.5px;color:var(--muted)}
+  .guide{margin-top:16px;padding:14px 16px;background:var(--paper);border-radius:12px;text-align:left}
+  .guide li{font-size:12.8px;color:var(--muted);margin-left:16px;margin-bottom:5px}
+
+  .admin-link{text-align:center;margin-top:20px}
+  .admin-link button{background:none;border:none;color:var(--muted);font-size:12.5px;
+        cursor:pointer;font-family:inherit;text-decoration:underline}
+  #adminView{display:none}
+  .stat-row{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:13px}
+  .stat{flex:1;min-width:100px;background:var(--card);border:1.5px solid var(--line);
+        border-radius:12px;padding:11px 13px;cursor:pointer;user-select:none}
+  .stat:hover{border-color:var(--green)}
+  .stat.active{border-color:var(--green);background:var(--green-soft)}
+  .stat .n{font-size:21px;font-weight:800}
+  .stat .l{font-size:11.5px;color:var(--muted);font-weight:600}
+  .table-wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:760px}
+  th{text-align:left;padding:10px 11px;background:var(--paper);color:var(--muted);
+     font-size:11.5px;font-weight:700;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:10px 11px;border-bottom:1px solid var(--line);white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  .badge{display:inline-block;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700}
+  .badge.applied{background:var(--blue-soft);color:var(--blue)}
+  .badge.done{background:var(--green-soft);color:var(--green-deep)}
+  .badge.cancelled{background:var(--red-soft);color:var(--red)}
+  .badge.k{background:#EEF1EF;color:var(--ink)}
+  footer{text-align:center;font-size:12px;color:var(--muted);padding:0 16px 34px}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-in">
+    <span class="eyebrow">HANDYLIFE TEST RIDE</span>
+    <h1>타보면 <span class="a">달라집니다</span></h1>
+    <p>핸디라이프 전기이륜차 시승 예약</p>
+  </div>
+</div>
+
+<main>
+  <div id="wizard">
+    <!-- ══ STEP 0 : 유형 선택 ══ -->
+    <div class="card" id="s0">
+      <h2>어떤 방식으로 시승하시겠어요?</h2>
+      <p class="cs">원하시는 방식을 선택해 주세요.</p>
+      <div class="choice">
+        <button class="ch" onclick="goStore()">
+          <span class="ic">🏪</span>
+          <span class="t">대리점 시승 예약</span>
+          <span class="d">가장 가까운 시승점을 직접 선택해주세요</span>
+          <span class="arw">›</span>
+        </button>
+        <button class="ch" id="chEvent" onclick="goEvent()">
+          <span class="ic">🎪</span>
+          <span class="t">본사 시승 예약</span>
+          <span class="d">경기도 광주시 초월읍 무갑리 682-1<br>(주)핸디라이프 본사</span>
+          <span class="arw">›</span>
+        </button>
+      </div>
+      <div class="ch-loading-note" id="chLoad">정보를 불러오는 중입니다...</div>
+      <div class="admin-link"><button onclick="openAdmin()">운영자 로그인</button></div>
+    </div>
+
+    <!-- ══ 매장 시승 단계 ══ -->
+    <div class="card" id="sStep" style="display:none">
+      <button class="back" onclick="back()">← 이전</button>
+      <div class="stp-label" id="stpLabel"></div>
+      <div class="steps" id="stpBar"></div>
+      <h2 id="stepTitle"></h2>
+      <p class="cs" id="stepDesc"></p>
+      <div id="stepBody"></div>
+      <div class="notice" id="notice"></div>
+    </div>
+  </div>
+
+  <!-- ══ 완료 ══ -->
+  <div id="done">
+    <div class="ic">🎉</div>
+    <h2>예약이 완료되었습니다!</h2>
+    <p>담당자가 확인 후 연락드립니다.</p>
+    <div class="recap" id="doneRecap" style="margin-top:18px"></div>
+    <div class="guide">
+      <ul>
+        <li><strong>시승은 예약하신 본인만 가능합니다.</strong> 일행분도 시승을 원하시면 각자 예약해 주세요.</li>
+        <li>안전상 뒷자리 동승은 불가합니다.</li>
+        <li>방문 시 <strong>원동기 이상 운전면허증 원본</strong>을 꼭 지참해 주세요.</li>
+        <li>현장에서 간단한 시승 동의서를 작성하시게 됩니다.</li>
+        <li>헬멧 등 보호장비는 전부 제공됩니다. 편한 복장과 신발로 오세요.</li>
+        <li>전기이륜차는 스로틀을 감는 즉시 힘이 전달되어 가속이 빠릅니다. 현장 안내를 꼭 들어주세요.</li>
+        <li>예약 변경·취소는 대리점 또는 본사로 연락 주시면 도와드립니다.</li>
+      </ul>
+    </div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:16px" onclick="location.reload()">처음으로</button>
+  </div>
+
+  <!-- ══ 관리자 ══ -->
+  <div id="adminView">
+    <div class="card" id="adminLock" style="max-width:400px;margin:0 auto;text-align:center">
+      <h2>🔒 운영자 확인</h2>
+      <p class="cs">관리자 비밀번호를 입력해 주세요.</p>
+      <div class="field"><input type="password" id="fPass" placeholder="비밀번호" onkeydown="if(event.key==='Enter')unlock()"></div>
+      <button class="btn btn-primary" onclick="unlock()">확인</button>
+      <div class="notice" id="lockNotice"></div>
+      <div style="margin-top:14px"><button class="btn btn-sm btn-ghost" onclick="closeAdmin()">← 예약 화면으로</button></div>
+    </div>
+    <div id="adminDash" style="display:none">
+      <div class="stat-row" id="statRow">
+        <div class="stat active" data-f="all" onclick="statFilter('all')"><div class="n" id="stTotal">-</div><div class="l">전체 예약</div></div>
+        <div class="stat" data-f="store" onclick="statFilter('store')"><div class="n" id="stStore" style="color:var(--blue)">-</div><div class="l">대리점 시승</div></div>
+        <div class="stat" data-f="hq" onclick="statFilter('hq')"><div class="n" id="stEvent" style="color:var(--green)">-</div><div class="l">본사 시승</div></div>
+        <div class="stat" data-f="done" onclick="statFilter('done')"><div class="n" id="stDone">-</div><div class="l">시승 완료</div></div>
+        <div class="stat" data-f="cancelled" onclick="statFilter('cancelled')"><div class="n" id="stCancel" style="color:var(--red)">-</div><div class="l">취소</div></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <input type="text" id="fSearch" placeholder="이름·연락처·대리점 검색" oninput="renderTable()"
+               style="flex:1;min-width:140px;padding:9px 11px;font-size:13.5px">
+        <button class="btn btn-sm btn-ghost" onclick="loadList()">새로고침</button>
+        <button class="btn btn-sm btn-ghost" onclick="exportCSV()">엑셀(CSV)</button>
+        <button class="btn btn-sm btn-ghost" onclick="closeAdmin()">예약 화면</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>신청일시</th><th>유형</th><th>대리점</th><th>희망일</th><th>시간</th><th>기종</th>
+                     <th>성함</th><th>연락처</th><th>면허</th><th>동행</th><th>상태</th><th>관리</th></tr></thead>
+          <tbody id="tbody"><tr><td colspan="12" class="loading">불러오는 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>(주)핸디라이프 · 전기이륜차 시승 예약 시스템</footer>
+
+<script>
+/* ═══════════ 설정 ═══════════ */
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQy2Eu3jY9qfFf_-uId1A0gGXqVjGuGtTRfJ5-MIZ-rrTISOTgzRrTjaqxHh-6JfVe/exec';
+
+let CFG = null, cfgP = null, adminToken = '', entries = [], adminStores = [], statMode = 'all';
+let mode = '', step = 0, booked = {}, calY = 0, calM = 0, bookedP = null;
+const R = { region:'', store:null, model:'', date:'', time:'', lic:'', comp:'없음' };
+
+const STORE_STEPS = ['지역', '대리점', '기종', '날짜', '시간', '정보'];
+const EVENT_STEPS = ['기종', '날짜', '시간', '정보'];
+
+async function api(p) {
+  if (!SCRIPT_URL || SCRIPT_URL.indexOf('http') !== 0) throw new Error('SCRIPT_URL이 설정되지 않았습니다.');
+  const res = await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify(p) });
+  const d = await res.json();
+  if (!d.ok) throw new Error(d.error || 'SERVER_ERROR');
+  return d;
+}
+const esc = s => String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const ymd = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+function note(msg,type){const n=document.getElementById('notice');n.textContent=msg;n.className='notice '+type;}
+function clearNote(){document.getElementById('notice').className='notice';}
+function korDate(s){const[y,m,d]=s.split('-');const w=['일','월','화','수','목','금','토'][new Date(s+'T00:00:00').getDay()];return `${Number(m)}월 ${Number(d)}일 (${w})`;}
+
+/* ═══════════ 초기 로드 ═══════════ */
+function setChoiceLoading(on, msg) {
+  document.querySelectorAll('#s0 .ch').forEach(b => b.classList.toggle('loading', on));
+  const n = document.getElementById('chLoad');
+  if (n) { n.textContent = msg || ''; n.style.display = msg ? 'block' : 'none'; }
+}
+
+function init() {
+  setChoiceLoading(true, '정보를 불러오는 중입니다...');
+  cfgP = api({ action:'config' })
+    .then(r => {
+      CFG = r;
+      setChoiceLoading(false, '');
+      if (!CFG.hq || !CFG.hq.enabled) {
+        const b = document.getElementById('chEvent');
+        b.classList.add('off'); b.onclick = null;
+      }
+      return CFG;
+    })
+    .catch(e => {
+      setChoiceLoading(false, '');
+      document.getElementById('s0').innerHTML =
+        '<div class="empty">정보를 불러오지 못했습니다.<br>' + esc(e.message) +
+        '<br><br><button class="btn btn-sm btn-ghost" onclick="location.reload()">다시 시도</button></div>';
+      return null;
+    });
+}
+
+// 설정 로딩이 끝날 때까지 기다림 (이미 끝났으면 즉시 반환)
+async function ensureCfg() {
+  if (CFG) return true;
+  setChoiceLoading(true, '정보를 불러오는 중입니다... 잠시만 기다려 주세요');
+  await cfgP;
+  setChoiceLoading(false, '');
+  return !!CFG;
+}
+
+async function goStore(){
+  if (!await ensureCfg()) return;
+  mode='store'; step=0;
+  R.region=''; R.store=null; R.model=''; R.date=''; R.time=''; calY=0;
+  showStep();
+}
+async function goEvent(){
+  if (!await ensureCfg()) return;
+  mode='event'; step=0;
+  R.model=''; R.date=''; R.time=''; calY=0;
+  prefetchBooked('HQ');   // 백그라운드로 예약현황 로딩 (화면은 즉시 전환)
+  showStep();
+}
+
+// 예약현황을 미리 받아두기 (기다리지 않음)
+function prefetchBooked(storeId) {
+  booked = {};
+  bookedP = api({ action:'booked', storeId })
+    .then(r => { booked = r.booked || {}; return booked; })
+    .catch(() => { booked = {}; return booked; });
+}
+
+// 캘린더를 그리기 직전에만 로딩 완료를 기다림
+async function ensureBooked() {
+  if (bookedP) { await bookedP; bookedP = null; }
+}
+function back(){
+  clearNote();
+  if (step === 0) {
+    mode=''; 
+    document.getElementById('s0').style.display='block';
+    document.getElementById('sStep').style.display='none';
+    return;
+  }
+  step--; showStep();
+}
+
+function showStep() {
+  clearNote();
+  document.getElementById('s0').style.display='none';
+  document.getElementById('sStep').style.display='block';
+  const labels = mode==='store' ? STORE_STEPS : EVENT_STEPS;
+  document.getElementById('stpLabel').textContent = `STEP ${step+1} / ${labels.length} · ${labels[step]}`;
+  document.getElementById('stpBar').innerHTML = labels.map((_,i)=>`<div class="stp ${i<=step?'on':''}"></div>`).join('');
+  try {
+    (mode==='store' ? storeStep : eventStep)();
+  } catch (e) {
+    console.error(e);
+    setStep('잠시 문제가 발생했습니다', '아래 버튼을 눌러 다시 시도해 주세요.',
+      '<button class="btn btn-primary" onclick="location.reload()">새로고침</button>');
+  }
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+function setStep(title, desc, html) {
+  document.getElementById('stepTitle').textContent = title;
+  document.getElementById('stepDesc').textContent = desc;
+  document.getElementById('stepBody').innerHTML = html;
+}
+
+/* ═══════════ 매장 시승 단계 ═══════════ */
+function storeStep() {
+  if (step === 0) {  // 지역 (권역별 그룹)
+    const has = r => CFG.stores.filter(s=>s.region===r).length;
+    const areas = CFG.areas || [];
+    const listed = new Set();
+    let html = '';
+
+    areas.forEach(a => {
+      const rs = a.regions.filter(r => has(r) > 0);
+      if (!rs.length) return;
+      rs.forEach(r => listed.add(r));
+      html += `<div class="area-h">${esc(a.area)}</div><div class="regions">` +
+        rs.map(r => `<button class="rg ${R.region===r?'selected':''}" onclick="pickRegion('${esc(r)}')">
+            ${esc(r)}<span class="c">${has(r)}개 대리점</span></button>`).join('') + '</div>';
+    });
+
+    // AREAS 에 없는 지역명이 쓰인 경우도 누락 없이 표시
+    const etc = [...new Set(CFG.stores.map(s=>s.region))].filter(r => !listed.has(r));
+    if (etc.length) {
+      html += `<div class="area-h">기타</div><div class="regions">` +
+        etc.map(r => `<button class="rg ${R.region===r?'selected':''}" onclick="pickRegion('${esc(r)}')">
+            ${esc(r)}<span class="c">${has(r)}개 대리점</span></button>`).join('') + '</div>';
+    }
+
+    setStep('지역을 선택해 주세요', '시승차를 보유한 대리점이 있는 지역만 표시됩니다.',
+      html || '<div class="empty">현재 시승 가능한 대리점이 없습니다.</div>');
+  }
+  else if (step === 1) {  // 매장
+    const list = CFG.stores.filter(s=>s.region===R.region);
+    setStep('대리점을 선택해 주세요', `${R.region} 지역에서 시승 가능한 대리점입니다.`,
+      `<div class="list">${list.map(s=>
+        `<button class="item ${R.store&&R.store.id===s.id?'selected':''}" onclick="pickStore('${esc(s.id)}')">
+           <div class="n">${esc(s.name)}</div>
+           <div class="s">${esc(s.addr)}<br>☎ ${esc(s.tel)} · 보유 시승차 ${s.models.length}종</div>
+         </button>`).join('')}</div>`);
+  }
+  else if (step === 2) {  // 기종
+    setStep('시승하실 기종을 선택해 주세요', `${R.store.name}에서 시승 가능한 기종입니다.`,
+      `<div class="list">${CFG.models.map(m=>{
+        const has = R.store.models.indexOf(m.name) >= 0;
+        if (!m.ready) return `<div class="item soon"><span class="soon-badge">출시 준비중</span>
+            <div class="b">${esc(m.brand)}</div><div class="n">${esc(m.name)}</div>
+            <div class="s">${esc(m.tag)} · 곧 만나보실 수 있습니다</div></div>`;
+        if (!has) return `<div class="item soon"><span class="soon-badge">해당 대리점 없음</span>
+            <div class="b">${esc(m.brand)}</div><div class="n">${esc(m.name)}</div>
+            <div class="s">${esc(m.tag)}</div></div>`;
+        return `<button class="item ${R.model===m.name?'selected':''}" onclick="pickModel('${esc(m.name)}')">
+            <div class="b">${esc(m.brand)}</div><div class="n">${esc(m.name)}</div>
+            <div class="s">${esc(m.tag)}</div></button>`;
+      }).join('')}</div>`);
+  }
+  else if (step === 3) {  // 날짜
+    showCalendar(`${R.store.name} · ${R.model}`);
+  }
+  else if (step === 4) {  // 시간
+    setStep('희망 시간을 선택해 주세요', `${korDate(R.date)} · ${R.store.name}`, timesHTML());
+  }
+  else {  // 정보
+    setStep('예약자 정보를 입력해 주세요', '입력하신 정보로 예약이 확정됩니다.', formHTML(
+      [['대리점',R.store.name],['기종',R.model],['날짜',korDate(R.date)],['시간',R.time]]));
+    bindForm();
+  }
+}
+
+/* ═══════════ 시승식 단계 ═══════════ */
+function eventStep() {
+  const H = CFG.hq;
+  if (step === 0) {  // 기종
+    setStep('시승하실 기종을 선택해 주세요', `${H.name}에서 시승 가능한 기종입니다.`,
+      `<div class="list">${CFG.models.map(m=>{
+        const has = H.models.indexOf(m.name) >= 0;
+        if (!m.ready) return `<div class="item soon"><span class="soon-badge">출시 준비중</span>
+            <div class="b">${esc(m.brand)}</div><div class="n">${esc(m.name)}</div>
+            <div class="s">${esc(m.tag)} · 곧 만나보실 수 있습니다</div></div>`;
+        if (!has) return `<div class="item soon"><span class="soon-badge">본사 보유 안함</span>
+            <div class="b">${esc(m.brand)}</div><div class="n">${esc(m.name)}</div>
+            <div class="s">${esc(m.tag)}</div></div>`;
+        return `<button class="item ${R.model===m.name?'selected':''}" onclick="pickModel('${esc(m.name)}')">
+            <div class="b">${esc(m.brand)}</div><div class="n">${esc(m.name)}</div>
+            <div class="s">${esc(m.tag)}</div></button>`;
+      }).join('')}</div>`);
+  }
+  else if (step === 1) {  // 날짜
+    showCalendar(`${H.name} · ${R.model}`);
+  }
+  else if (step === 2) {  // 시간
+    setStep('희망 시간을 선택해 주세요', `${korDate(R.date)} · ${H.name}`, timesHTML());
+  }
+  else {  // 정보
+    setStep('예약자 정보를 입력해 주세요', '입력하신 정보로 예약이 확정됩니다.', formHTML(
+      [['장소',H.name],['주소',H.addr],['기종',R.model],['날짜',korDate(R.date)],['시간',R.time]]));
+    bindForm();
+  }
+}
+
+/* ═══════════ 캘린더 ═══════════ */
+// 현재 모드에 맞는 예약 규칙 반환
+function ctx() {
+  return mode === 'store'
+    ? { times: CFG.times, cap: CFG.capPerSlot, closed: CFG.closedWeekdays || [],
+        open: CFG.openDays, lead: CFG.leadDays,
+        start: CFG.startDate || '', end: CFG.endDate || '',
+        openDates: CFG.openDates || [], closedDates: CFG.closedDates || [] }
+    : { times: CFG.hq.times, cap: CFG.hq.cap, closed: CFG.hq.closedWeekdays || [],
+        open: CFG.hq.openDays, lead: CFG.hq.leadDays,
+        start: CFG.hq.startDate || '', end: CFG.hq.endDate || '',
+        openDates: CFG.hq.openDates || [], closedDates: CFG.hq.closedDates || [] };
+}
+
+// 예약현황 로딩을 기다렸다가 캘린더 표시
+async function showCalendar(desc) {
+  setStep('희망 날짜를 선택해 주세요', desc, '<div class="loading">예약 가능한 날짜를 확인하는 중...</div>');
+  await ensureBooked();
+  if (step !== (mode === 'store' ? 3 : 1)) return;  // 사용자가 이미 다른 단계로 이동했으면 무시
+  document.getElementById('stepBody').innerHTML = calendarHTML();
+}
+
+function calendarHTML() {
+  const C = ctx();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const toDate = s => { const p = s.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); };
+  let min = new Date(today); min.setDate(min.getDate() + C.lead);
+  if (C.start && toDate(C.start) > min) min = toDate(C.start);
+  let max = new Date(today); max.setDate(max.getDate() + C.open);
+  if (C.end) max = toDate(C.end);
+  if (max < min) { max = new Date(min); max.setDate(max.getDate() + 30); }
+  if (!calY) { calY = min.getFullYear(); calM = min.getMonth(); }
+
+  const first = new Date(calY, calM, 1);
+  const days = new Date(calY, calM+1, 0).getDate();
+  const lead = first.getDay();
+  const prevOK = new Date(calY, calM, 1) > new Date(min.getFullYear(), min.getMonth(), 1);
+  const nextOK = new Date(calY, calM+1, 1) <= new Date(max.getFullYear(), max.getMonth(), 1);
+
+  let cells = '';
+  for (let i=0;i<lead;i++) cells += '<div class="day empty"></div>';
+  for (let d=1; d<=days; d++) {
+    const dt = new Date(calY, calM, d);
+    const s = ymd(dt);
+    const isOpenEx = C.openDates.indexOf(s) >= 0;
+    const isClosedEx = C.closedDates.indexOf(s) >= 0;
+    const closed = isClosedEx || (!isOpenEx && C.closed.indexOf(dt.getDay()) >= 0);
+    const inRange = dt >= min && dt <= max;
+    const allFull = C.times.every(t => (booked[s+'|'+t]||0) >= C.cap);
+    const ok = inRange && !closed && !allFull;
+    cells += `<button class="day ${R.date===s?'selected':''}" ${ok?`onclick="pickDate('${s}')"`:'disabled'}>
+                ${d}${ok?'<span class="dot"></span>':''}</button>`;
+  }
+  return `<div class="cal-head">
+      <button class="cal-nav" ${prevOK?'onclick="moveMonth(-1)"':'disabled'}>‹</button>
+      <span class="m">${calY}년 ${calM+1}월</span>
+      <button class="cal-nav" ${nextOK?'onclick="moveMonth(1)"':'disabled'}>›</button>
+    </div>
+    <div class="cal">
+      ${['일','월','화','수','목','금','토'].map((w,i)=>`<div class="dow ${i===0?'sun':''}">${w}</div>`).join('')}
+      ${cells}
+    </div>
+    <p style="font-size:12.5px;color:var(--muted);margin-top:12px">
+      · 점(●)이 있는 날짜만 예약 가능합니다.<br>
+      · 예약 가능 기간 : ${ymd(min)} ~ ${ymd(max)}${C.closed.length ? '<br>· 휴무 : ' + C.closed.map(d=>['일','월','화','수','목','금','토'][d]+'요일').join('·') : ''}</p>`;
+}
+function moveMonth(n) {
+  calM += n;
+  if (calM < 0) { calM = 11; calY--; }
+  if (calM > 11) { calM = 0; calY++; }
+  document.getElementById('stepBody').innerHTML = calendarHTML();
+}
+
+function timesHTML() {
+  const C = ctx();
+  return `<div class="times">${C.times.map(t=>{
+    const used = booked[R.date+'|'+t] || 0;
+    const left = C.cap - used;
+    const full = left <= 0;
+    const sub = full ? '예약 마감' : (C.cap > 1 ? '잔여 ' + left + '석' : '예약 가능');
+    return `<button class="tm ${R.time===t?'selected':''}" ${full?'disabled':`onclick="pickTime('${t}')"`}>
+      ${t}<span class="sub">${sub}</span></button>`;
+  }).join('')}</div>`;
+}
+
+function formHTML(recap) {
+  return `<div class="recap">${recap.map(([k,v])=>`<div><span class="k">${k}</span><span>${esc(v)}</span></div>`).join('')}</div>
+    <div class="row2">
+      <div class="field"><label>성함 <span class="req">*</span></label>
+        <input type="text" id="fName" placeholder="예) 홍길동" maxlength="20"></div>
+      <div class="field"><label>연락처 <span class="req">*</span></label>
+        <input type="tel" id="fPhone" placeholder="010-0000-0000" maxlength="13" inputmode="numeric"></div>
+    </div>
+    <div class="field"><label>운전면허 종류 <span class="req">*</span></label>
+      <div class="pills" id="lic">
+        <button type="button" class="pill" onclick="pickLic(this,'2종 원동기')">2종 원동기</button>
+        <button type="button" class="pill" onclick="pickLic(this,'2종 소형')">2종 소형</button>
+        <button type="button" class="pill" onclick="pickLic(this,'1·2종 보통')">1·2종 보통</button>
+      </div></div>
+    <div class="field"><label>동행 인원 <span class="opt">(시승하지 않고 함께 오시는 분)</span></label>
+      <div class="pills" id="comp">
+        <button type="button" class="pill selected" onclick="pickComp(this,'없음')">없음</button>
+        <button type="button" class="pill" onclick="pickComp(this,'1명')">1명</button>
+        <button type="button" class="pill" onclick="pickComp(this,'2명 이상')">2명 이상</button>
+      </div>
+      <div class="solo">🏍️ <strong>시승은 예약하신 본인만 가능합니다.</strong><br>
+        안전상 뒷자리 동승은 불가하며, 일행분도 시승을 원하시면 각자 예약해 주세요.</div></div>
+    <div class="field"><label>남기실 말씀 <span class="opt">(선택)</span></label>
+      <textarea id="fMemo" placeholder="궁금한 점이나 요청사항을 적어주세요" maxlength="200"></textarea></div>
+    <div class="agree"><input type="checkbox" id="fAgree">
+      <label for="fAgree">시승 시 <strong>운전면허증 원본 확인</strong> 및 <strong>시승 동의서 작성</strong>이 필요하며,
+      음주 상태에서는 시승할 수 없습니다. <strong>시승은 예약자 본인만 가능하며 뒷자리 동승은 불가합니다.</strong>
+      시승은 지정된 구간에서만 진행됩니다. 입력하신 정보는 시승 운영 목적으로만 사용됩니다.</label></div>
+    <button class="btn btn-primary" id="btnGo" onclick="submitReserve()">예약 완료하기</button>`;
+}
+function bindForm() {
+  document.getElementById('fPhone').addEventListener('input', function(){
+    let v = this.value.replace(/\D/g,'').slice(0,11);
+    if (v.length>7) v = v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7);
+    else if (v.length>3) v = v.slice(0,3)+'-'+v.slice(3);
+    this.value = v;
+  });
+}
+
+/* ═══════════ 선택 핸들러 ═══════════ */
+function pickRegion(r){ R.region=r; R.store=null; step=1; showStep(); }
+function pickStore(id){
+  R.store = CFG.stores.filter(s=>s.id===id)[0];
+  R.model=''; R.date=''; R.time=''; calY=0;
+  prefetchBooked(id);   // 백그라운드 로딩
+  step=2; showStep();
+}
+function pickModel(m){ R.model=m; step++; showStep(); }
+function pickDate(d){ R.date=d; R.time=''; step = (mode==='store') ? 4 : 2; showStep(); }
+function pickTime(t){ R.time=t; step++; showStep(); }
+function pickLic(el,v){ document.querySelectorAll('#lic .pill').forEach(p=>p.classList.remove('selected')); el.classList.add('selected'); R.lic=v; }
+function pickComp(el,v){ document.querySelectorAll('#comp .pill').forEach(p=>p.classList.remove('selected')); el.classList.add('selected'); R.comp=v; }
+
+/* ═══════════ 예약 전송 ═══════════ */
+async function submitReserve() {
+  const name = document.getElementById('fName').value.trim();
+  const phone = document.getElementById('fPhone').value.trim();
+  const memo = document.getElementById('fMemo').value.trim();
+  if (!name) return note('성함을 입력해 주세요.','err');
+  if (!/^01[016789]-\d{3,4}-\d{4}$/.test(phone)) return note('연락처를 010-0000-0000 형식으로 입력해 주세요.','err');
+  if (!R.lic) return note('운전면허 종류를 선택해 주세요.','err');
+  if (!document.getElementById('fAgree').checked) return note('안내 사항 확인에 체크해 주세요.','err');
+
+  const btn = document.getElementById('btnGo');
+  btn.disabled = true; btn.textContent = '예약 중...';
+  try {
+    await api({ action:'reserve', data:{
+      kind: mode==='store' ? '대리점시승' : '본사시승',
+      storeId: mode==='store' ? (R.store ? R.store.id : '') : 'HQ',
+      date: R.date, time: R.time, model: R.model,
+      name, phone, license: R.lic, companion: R.comp, memo
+    }});
+    const rows = mode==='store'
+      ? [['대리점',R.store.name],['기종',R.model],['날짜',korDate(R.date)],['시간',R.time],['성함',name]]
+      : [['장소',CFG.hq.name],['주소',CFG.hq.addr],['기종',R.model],['날짜',korDate(R.date)],['시간',R.time],['성함',name]];
+    document.getElementById('doneRecap').innerHTML =
+      rows.map(([k,v])=>`<div><span class="k">${k}</span><span>${esc(v)}</span></div>`).join('');
+    document.getElementById('wizard').style.display='none';
+    document.getElementById('done').style.display='block';
+    window.scrollTo({top:0,behavior:'smooth'});
+  } catch(e) {
+    const m = e.message;
+    if (m==='SLOT_FULL') note('아쉽게도 방금 해당 시간이 마감되었습니다. 다른 시간을 선택해 주세요.','err');
+    else if (m==='DUPLICATE_PHONE') note('이미 예약하신 연락처입니다. 변경이 필요하시면 대리점 또는 본사로 연락 주세요.','err');
+    else if (m==='MODEL_NOT_READY') note('선택하신 기종은 아직 시승이 불가합니다.','err');
+    else if (m==='DATE_CLOSED') note('선택하신 날짜는 예약이 불가합니다. 다른 날짜를 선택해 주세요.','err');
+    else note('예약에 실패했습니다: '+m,'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '예약 완료하기';
+  }
+}
+
+/* ═══════════ 관리자 ═══════════ */
+function openAdmin(){ document.getElementById('wizard').style.display='none'; document.getElementById('adminView').style.display='block'; document.querySelector('main').classList.add('wide'); window.scrollTo({top:0}); }
+function closeAdmin(){ document.getElementById('adminView').style.display='none'; document.getElementById('wizard').style.display='block'; document.querySelector('main').classList.remove('wide'); }
+async function unlock() {
+  const pass = document.getElementById('fPass').value;
+  const n = document.getElementById('lockNotice');
+  n.textContent='확인 중...'; n.className='notice ok';
+  try {
+    await api({ action:'list', token:pass });
+    adminToken = pass;
+    try { sessionStorage.setItem('hl_tr', pass); } catch(e){}
+    document.getElementById('adminLock').style.display='none';
+    document.getElementById('adminDash').style.display='block';
+    n.className='notice'; loadList();
+  } catch(e) {
+    n.textContent = (e.message==='AUTH') ? '비밀번호가 올바르지 않습니다.' : '서버 연결 실패: '+e.message;
+    n.className='notice err';
+  }
+}
+async function loadList() {
+  const tb = document.getElementById('tbody');
+  tb.innerHTML = '<tr><td colspan="12" class="loading">불러오는 중...</td></tr>';
+  try {
+    const r = await api({ action:'list', token:adminToken });
+    entries = (r.entries||[]).sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
+    adminStores = r.stores || [];
+    renderStats(); renderTable();
+  } catch(e) {
+    tb.innerHTML = '<tr><td colspan="12" class="empty">불러오지 못했습니다: '+esc(e.message)+'</td></tr>';
+  }
+}
+function storeName(id){ const s = adminStores.filter(x=>x.id===id)[0]; return s ? s.name : (id||'-'); }
+function fmtTs(iso){
+  const d = new Date(iso); if (isNaN(d)) return String(iso||'');
+  const p = n => String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+function renderStats() {
+  const act = entries.filter(e=>e.status!=='cancelled');
+  document.getElementById('stTotal').textContent = act.length;
+  document.getElementById('stStore').textContent = act.filter(e=>e.kind==='대리점시승').length;
+  document.getElementById('stEvent').textContent = act.filter(e=>e.kind==='본사시승').length;
+  document.getElementById('stDone').textContent = entries.filter(e=>e.status==='done').length;
+  document.getElementById('stCancel').textContent = entries.filter(e=>e.status==='cancelled').length;
+}
+function statFilter(mode) {
+  statMode = mode;
+  document.querySelectorAll('#statRow .stat').forEach(c => c.classList.toggle('active', c.dataset.f === mode));
+  renderTable();
+}
+
+function filtered() {
+  const q = document.getElementById('fSearch').value.trim().toLowerCase();
+  return entries.filter(e => {
+    // 카드 필터
+    if (statMode === 'store'  && !(e.kind === '대리점시승' && e.status !== 'cancelled')) return false;
+    if (statMode === 'hq'     && !(e.kind === '본사시승'   && e.status !== 'cancelled')) return false;
+    if (statMode === 'done'   && e.status !== 'done') return false;
+    if (statMode === 'cancelled' && e.status !== 'cancelled') return false;
+    if (statMode === 'all'    && e.status === 'cancelled') return false;
+    // 검색어
+    if (q && ![e.name,e.phone,storeName(e.store),e.model,e.date,e.memo].join(' ').toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+function renderTable() {
+  const tb = document.getElementById('tbody');
+  const list = filtered();
+  if (!list.length) {
+    const msg = { all:'예약 내역이 없습니다.', store:'대리점 시승 예약이 없습니다.',
+                  hq:'본사 시승 예약이 없습니다.', done:'시승 완료 건이 없습니다.',
+                  cancelled:'취소된 예약이 없습니다.' }[statMode] || '표시할 내역이 없습니다.';
+    tb.innerHTML = '<tr><td colspan="12" class="empty">' + msg + '</td></tr>'; return;
+  }
+  const L = { applied:'예약', done:'시승완료', cancelled:'취소' };
+  const p = n => String(n).padStart(2,'0');
+  tb.innerHTML = list.map(e=>{
+    const d = new Date(e.ts);
+    const ts = isNaN(d) ? '-' : (d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+    return `<tr>
+      <td>${ts}</td>
+      <td><span class="badge k">${esc(e.kind)}</span></td>
+      <td>${esc(e.kind==='본사시승' ? (CFG && CFG.hq ? CFG.hq.name : '본사') : storeName(e.store))}</td>
+      <td>${esc(e.date)}</td>
+      <td><strong>${esc(e.time)}</strong></td>
+      <td>${esc(e.model)}</td>
+      <td><strong>${esc(e.name)}</strong></td>
+      <td>${esc(e.phone)}</td>
+      <td>${esc(e.license)}</td>
+      <td>${esc(e.companion)}</td>
+      <td><span class="badge ${e.status}">${L[e.status]||e.status}</span></td>
+      <td>
+        <select onchange="changeStatus('${esc(e.id)}',this)" style="padding:5px 7px;font-size:12px;border:1.5px solid var(--line);border-radius:8px;font-family:inherit;font-weight:700">
+          ${Object.keys(L).map(k=>`<option value="${k}" ${k===e.status?'selected':''}>${L[k]}</option>`).join('')}
+        </select>
+        <button class="btn btn-sm btn-danger" onclick="del('${esc(e.id)}')">삭제</button>
+      </td></tr>`;
+  }).join('');
+}
+async function changeStatus(id, sel) {
+  const e = entries.find(x=>x.id===id); if(!e) return;
+  const prev = e.status;
+  try { await api({ action:'status', token:adminToken, id, status:sel.value }); e.status=sel.value; renderStats(); }
+  catch(err){ sel.value=prev; alert('변경 실패: '+err.message); }
+}
+async function del(id) {
+  const e = entries.find(x=>x.id===id); if(!e) return;
+  if (!confirm(`${e.name} 님의 예약을 삭제할까요?\n삭제하면 복구할 수 없습니다.`)) return;
+  try { await api({ action:'delete', token:adminToken, id }); loadList(); }
+  catch(err){ alert('삭제 실패: '+err.message); }
+}
+function exportCSV() {
+  const list = filtered();
+  if (!list.length) return alert('내보낼 데이터가 없습니다.');
+  const L = { applied:'예약', done:'시승완료', cancelled:'취소' };
+  const rows = [['신청일시','유형','대리점','희망일','시간','기종','성함','연락처','면허','동행인원','상태','메모']].concat(
+    list.map(e=>[fmtTs(e.ts), e.kind, e.kind==='본사시승'?((CFG&&CFG.hq)?CFG.hq.name:'본사'):storeName(e.store), e.date, e.time, e.model, e.name, e.phone, e.license, e.companion, L[e.status]||e.status, e.memo||''])
+  );
+  const csv = '\uFEFF' + rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download = 'handylife_testride.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
+
+init();
+</script>
+</body>
+</html>
