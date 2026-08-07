@@ -343,6 +343,8 @@
         <div class="stat active" data-f="all" onclick="statFilter('all')"><div class="n" id="stTotal">-</div><div class="l">전체 예약</div></div>
         <div class="stat" data-f="store" onclick="statFilter('store')"><div class="n" id="stStore" style="color:var(--blue)">-</div><div class="l">대리점 시승</div></div>
         <div class="stat" data-f="hq" onclick="statFilter('hq')"><div class="n" id="stEvent" style="color:var(--green)">-</div><div class="l">본사 시승</div></div>
+        <div class="stat" data-f="upcoming" onclick="statFilter('upcoming')"><div class="n" id="stUpcoming" style="color:var(--amber)">-</div><div class="l">시승 예정</div></div>
+        <div class="stat" data-f="today" onclick="statFilter('today')"><div class="n" id="stToday" style="color:var(--red)">-</div><div class="l">오늘 시승</div></div>
         <div class="stat" data-f="done" onclick="statFilter('done')"><div class="n" id="stDone">-</div><div class="l">시승 완료</div></div>
         <div class="stat" data-f="cancelled" onclick="statFilter('cancelled')"><div class="n" id="stCancel" style="color:var(--red)">-</div><div class="l">취소</div></div>
       </div>
@@ -824,9 +826,27 @@ function renderStats() {
   document.getElementById('stTotal').textContent = act.length;
   document.getElementById('stStore').textContent = act.filter(e=>e.kind==='대리점시승').length;
   document.getElementById('stEvent').textContent = act.filter(e=>e.kind==='본사시승').length;
+  document.getElementById('stUpcoming').textContent = entries.filter(isUpcoming).length;
+  document.getElementById('stToday').textContent = entries.filter(isToday).length;
   document.getElementById('stDone').textContent = entries.filter(e=>e.status==='done').length;
   document.getElementById('stCancel').textContent = entries.filter(e=>e.status==='cancelled').length;
 }
+// 오늘 날짜 (YYYY-MM-DD)
+function todayStr() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+// 시승 예정: 취소·완료가 아니고, 희망일이 오늘 이후
+function isUpcoming(e) {
+  if (e.status === 'cancelled' || e.status === 'done') return false;
+  return String(e.date || '') >= todayStr();
+}
+function isToday(e) {
+  if (e.status === 'cancelled') return false;
+  return String(e.date || '') === todayStr();
+}
+
 function statFilter(mode) {
   statMode = mode;
   document.querySelectorAll('#statRow .stat').forEach(c => c.classList.toggle('active', c.dataset.f === mode));
@@ -846,6 +866,8 @@ function filtered() {
     // 카드 필터
     if (statMode === 'store'  && !(e.kind === '대리점시승' && e.status !== 'cancelled')) return false;
     if (statMode === 'hq'     && !(e.kind === '본사시승'   && e.status !== 'cancelled')) return false;
+    if (statMode === 'upcoming' && !isUpcoming(e)) return false;
+    if (statMode === 'today'  && !isToday(e)) return false;
     if (statMode === 'done'   && e.status !== 'done') return false;
     if (statMode === 'cancelled' && e.status !== 'cancelled') return false;
     if (statMode === 'all'    && e.status === 'cancelled') return false;
@@ -866,20 +888,28 @@ function renderDateChip() {
 function renderTable() {
   const tb = document.getElementById('tbody');
   renderDateChip();
-  const list = filtered();
+  let list = filtered();
+  // 예정/오늘 필터는 다가오는 순서로 정렬
+  if (statMode === 'upcoming' || statMode === 'today') {
+    list = list.slice().sort((a, b) =>
+      (String(a.date||'') + String(a.time||'')).localeCompare(String(b.date||'') + String(b.time||'')));
+  }
   if (!list.length) {
     let msg = { all:'예약 내역이 없습니다.', store:'대리점 시승 예약이 없습니다.',
-                hq:'본사 시승 예약이 없습니다.', done:'시승 완료 건이 없습니다.',
+                hq:'본사 시승 예약이 없습니다.', upcoming:'예정된 시승이 없습니다.',
+                today:'오늘 예정된 시승이 없습니다.', done:'시승 완료 건이 없습니다.',
                 cancelled:'취소된 예약이 없습니다.' }[statMode] || '표시할 내역이 없습니다.';
     if (dateFilter) msg = dateFilter + ' 에 해당하는 예약이 없습니다.';
     tb.innerHTML = '<tr><td colspan="12" class="empty">' + msg + '</td></tr>'; return;
   }
   const L = { applied:'예약', done:'시승완료', cancelled:'취소' };
   const p = n => String(n).padStart(2,'0');
+  const _today = todayStr();
   tb.innerHTML = list.map(e=>{
     const d = new Date(e.ts);
     const ts = isNaN(d) ? '-' : (d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
-    return `<tr>
+    const isTd = (String(e.date||'') === _today && e.status !== 'cancelled');
+    return `<tr style="${isTd ? 'background:#FFF9EC' : ''}">
       <td>${ts}</td>
       <td><span class="badge k">${esc(e.kind)}</span></td>
       <td>${esc(e.kind==='본사시승' ? (CFG && CFG.hq ? CFG.hq.name : '본사') : storeName(e.store))}</td>
