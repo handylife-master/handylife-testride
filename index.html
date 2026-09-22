@@ -373,6 +373,31 @@
 /* ═══════════ 설정 ═══════════ */
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQy2Eu3jY9qfFf_-uId1A0gGXqVjGuGtTRfJ5-MIZ-rrTISOTgzRrTjaqxHh-6JfVe/exec';
 
+/* ═══ 본사 시승 휴무: 주말·공휴일 (2026-09-22 적용) ═══
+ * 본사 시승 예약에서만 토·일요일과 아래 공휴일을 예약 불가 처리합니다.
+ * 대리점 시승은 영향 없음.
+ * ▼ 공휴일 목록 (대체공휴일 포함) — 매년 말에 다음 해 날짜를 추가해 주세요. */
+const HQ_HOLIDAYS = [
+  // 2026년 남은 공휴일
+  '2026-09-24', '2026-09-25', '2026-09-26',                  // 추석 연휴
+  '2026-10-03',                                              // 개천절
+  '2026-10-05',                                              // 대체공휴일(개천절)
+  '2026-10-09',                                              // 한글날
+  '2026-12-25',                                              // 성탄절
+  // 2027년
+  '2027-01-01',                                              // 신정
+  '2027-02-06', '2027-02-07', '2027-02-08', '2027-02-09',    // 설 연휴 + 대체공휴일
+  '2027-03-01',                                              // 삼일절
+  '2027-05-05',                                              // 어린이날
+  '2027-05-13',                                              // 부처님오신날
+  '2027-06-06',                                              // 현충일
+  '2027-08-15', '2027-08-16',                                // 광복절 + 대체공휴일
+  '2027-09-14', '2027-09-15', '2027-09-16',                  // 추석 연휴
+  '2027-10-03', '2027-10-04',                                // 개천절 + 대체공휴일
+  '2027-10-09', '2027-10-11',                                // 한글날 + 대체공휴일
+  '2027-12-25', '2027-12-27'                                 // 성탄절 + 대체공휴일
+];
+
 let CFG = null, cfgP = null, adminToken = '', entries = [], adminStores = [], statMode = 'all', dateFilter = '';
 let mode = '', step = 0, booked = {}, calY = 0, calM = 0, bookedP = null;
 const R = { region:'', store:null, model:'', date:'', time:'', lic:'', comp:'없음' };
@@ -647,7 +672,9 @@ function calendarHTML() {
     const s = ymd(dt);
     const isOpenEx = C.openDates.indexOf(s) >= 0;
     const isClosedEx = C.closedDates.indexOf(s) >= 0;
-    const closed = isClosedEx || (!isOpenEx && C.closed.indexOf(dt.getDay()) >= 0);
+    // 본사 시승: 주말(토·일)·공휴일 예약 불가
+    const hqOff = mode !== 'store' && (dt.getDay() === 0 || dt.getDay() === 6 || HQ_HOLIDAYS.indexOf(s) >= 0);
+    const closed = hqOff || isClosedEx || (!isOpenEx && C.closed.indexOf(dt.getDay()) >= 0);
     const inRange = dt >= min && dt <= max;
     const allFull = C.times.every(t => (booked[s+'|'+t]||0) >= C.cap);
     const ok = inRange && !closed && !allFull;
@@ -665,7 +692,7 @@ function calendarHTML() {
     </div>
     <p style="font-size:12.5px;color:var(--muted);margin-top:12px">
       · 점(●)이 있는 날짜만 예약 가능합니다.<br>
-      · 예약 가능 기간 : ${ymd(min)} ~ ${ymd(max)}${C.closed.length ? '<br>· 휴무 : ' + C.closed.map(d=>['일','월','화','수','목','금','토'][d]+'요일').join('·') : ''}</p>`;
+      · 예약 가능 기간 : ${ymd(min)} ~ ${ymd(max)}${C.closed.length ? '<br>· 휴무 : ' + C.closed.map(d=>['일','월','화','수','목','금','토'][d]+'요일').join('·') : ''}${mode !== 'store' ? '<br>· 본사 시승은 주말·공휴일에 운영하지 않습니다.' : ''}</p>`;
 }
 function moveMonth(n) {
   calM += n;
